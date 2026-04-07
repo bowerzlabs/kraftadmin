@@ -1,6 +1,7 @@
 plugins {
     `java-library`
     `maven-publish`
+    signing
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("buildsrc.convention.kotlin-jvm")
 }
@@ -76,9 +77,29 @@ publishing {
             name = "local"
             url = uri(System.getProperty("user.home") + "/.m2/repository")
         }
+
+        maven {
+            name = "OSSRH" // Open Source Software Repository Hosting
+            url = uri("https://central.sonatype.com/service/local/staging/deploy/maven2/")
+            credentials {
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_PASSWORD")
+            }
+        }
     }
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+signing {
+    val signingKey = System.getenv("GPG_PRIVATE_KEY")
+    val signingPassphrase = System.getenv("GPG_PASSPHRASE")
+
+    if (!signingKey.isNullOrBlank()) {
+        useInMemoryPgpKeys(signingKey, signingPassphrase)
+        // This ensures the mavenJava publication is signed
+        sign(publishing.publications["mavenJava"])
+    }
 }

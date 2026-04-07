@@ -15,3 +15,10 @@ class Printer(val message: String) {
         println(message)
     }
 }
+
+//<server>
+//<id>${server}</id>
+//<username>pM2l1g</username>
+//<password>StXqaFngUHEYnxsP5JzWUNTs73Tma84UW</password>
+//<username_password>pM2l1g:StXqaFngUHEYnxsP5JzWUNTs73Tma84UW</username_password>
+//</server>
