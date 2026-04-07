@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.2-beta"
+version = "0.1.3-beta"
 
 java {
     withSourcesJar()
@@ -42,18 +42,18 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
 
-    // Use from() instead of configurations = ... to avoid the "Val cannot be reassigned" error
     from(project.configurations.runtimeClasspath.get())
 
-    // RELOCATE kotlin-reflect to keep it away from the parent app's classpath
+    //  Relocate the Reflection internals (This was our original goal)
     relocate("kotlin.reflect", "com.bowerzlabs.kraftadmin.shaded.kotlin.reflect")
-    relocate("kotlin", "com.bowerzlabs.kraftadmin.shaded.kotlin")
+
+    // Relocate Kotlin internals, but NOT the top-level 'kotlin' package
+    // This renames things like 'kotlin.jvm.internal' but keeps 'kotlin.Any' intact
+    relocate("kotlin.jvm", "com.bowerzlabs.kraftadmin.shaded.kotlin.jvm")
     relocate("kotlinx", "com.bowerzlabs.kraftadmin.shaded.kotlinx")
 
-    // THE FIX FOR VERSION 65:
-    // We tell Shadow to physically ignore the Java 21 folders inside the JARs it scans.
     exclude("META-INF/versions/21/**")
-    exclude("META-INF/versions/17/**") // Optional, but keeps things clean
+    exclude("META-INF/versions/17/**")
     exclude("**/module-info.class")
 
     mergeServiceFiles()
@@ -64,7 +64,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "com.bowerzlabs"
             artifactId = "kraft-admin"
-            version = "0.1.2-beta"
+            version = "0.1.3-beta"
 
             project.shadow.component(this)
             artifact(tasks.named("sourcesJar"))
