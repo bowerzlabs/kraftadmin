@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.1-beta"
+version = "0.1.2-beta"
 
 java {
     withSourcesJar()
@@ -47,6 +47,8 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
 
     // RELOCATE kotlin-reflect to keep it away from the parent app's classpath
     relocate("kotlin.reflect", "com.bowerzlabs.kraftadmin.shaded.kotlin.reflect")
+    relocate("kotlin", "com.bowerzlabs.kraftadmin.shaded.kotlin")
+    relocate("kotlinx", "com.bowerzlabs.kraftadmin.shaded.kotlinx")
 
     // THE FIX FOR VERSION 65:
     // We tell Shadow to physically ignore the Java 21 folders inside the JARs it scans.
@@ -62,7 +64,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "com.bowerzlabs"
             artifactId = "kraft-admin"
-            version = "0.1.1-beta"
+            version = "0.1.2-beta"
 
             project.shadow.component(this)
             artifact(tasks.named("sourcesJar"))

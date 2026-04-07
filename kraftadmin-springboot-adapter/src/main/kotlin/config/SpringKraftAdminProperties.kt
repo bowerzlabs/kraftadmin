@@ -10,18 +10,26 @@ import config.StorageConfig
 import config.TelemetryConfig
 import config.ThemeConfig
 import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.context.properties.NestedConfigurationProperty
 
 @ConfigurationProperties(prefix = "kraftadmin")
 data class SpringKraftAdminProperties(
     override var basePath: String = "/admin",
     override var title: String = "KraftAdmin",
     override var logoUrl: String? = null,
+    @NestedConfigurationProperty
     override var theme: SpringThemeProperties = SpringThemeProperties(),
+    @NestedConfigurationProperty
     override var storage: SpringStorageProperties = SpringStorageProperties(),
+    @NestedConfigurationProperty
     override var security: SpringSecurityProperties = SpringSecurityProperties(),
+    @NestedConfigurationProperty
     override var pagination: SpringPaginationProperties = SpringPaginationProperties(),
+    @NestedConfigurationProperty
     override var features: SpringFeatureProperties = SpringFeatureProperties(),
+    @NestedConfigurationProperty
     override var localeConfig: SpringLocaleProperties = SpringLocaleProperties(),
+    @NestedConfigurationProperty
     override var telemetryConfig: TelemetryProperties = TelemetryProperties()
 ) : KraftAdminPropertiesConfig {
     
