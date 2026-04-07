@@ -1,45 +1,41 @@
-.gradle
+# --- Gradle ---
+.gradle/
 build/
+**/build/
 !gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+# --- IDEs & Editors ---
+.idea/
 *.iws
 *.iml
 *.ipr
 out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### Kotlin ###
-.kotlin
-
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+**/out/
 bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+**/bin/
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+.springBeans
 
-### NetBeans ###
+# --- Kotlin ---
+.kotlin/
+kotlin-js-store/
+
+# --- BowerzLabs Secrets & Safety ---
+local.properties
+*.gpg
+*.jks
+*.key
+.env
+.DS_Store
+Thumbs.db
+
+# --- NetBeans / Others ---
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-
-### VS Code ###
-.vscode/
-
-### Mac OS ###
-.DS_Store
