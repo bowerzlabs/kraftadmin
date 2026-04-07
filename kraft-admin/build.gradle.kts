@@ -2,8 +2,8 @@ plugins {
     `java-library`
     `maven-publish`
     signing
-//    id("com.github.johnrengelman.shadow") version "8.1.1"
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "8.3.3"
     id("buildsrc.convention.kotlin-jvm")
 }
 
@@ -23,6 +23,7 @@ dependencies {
     api(project(":kraft-core"))
     api(project(":kraftadmin-springboot-adapter"))
     implementation(project(":kraftadmin-ui"))
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation(kotlin("test"))
 }
 
@@ -41,20 +42,19 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
 
-    configurations = listOf(project.configurations.runtimeClasspath.get())
+    // Use from() instead of configurations = ... to avoid the "Val cannot be reassigned" error
+    from(project.configurations.runtimeClasspath.get())
 
-    // Relocate but STRICTLY EXCLUDE meta-inf versions which hold the Java 21 bytecode
-    relocate("kotlin", "com.bowerzlabs.kraftadmin.shaded.kotlin") {
-        exclude("META-INF/versions/**")
-    }
-    relocate("kotlinx", "com.bowerzlabs.kraftadmin.shaded.kotlinx") {
-        exclude("META-INF/versions/**")
-    }
+    // RELOCATE kotlin-reflect to keep it away from the parent app's classpath
+    relocate("kotlin.reflect", "com.bowerzlabs.kraftadmin.shaded.kotlin.reflect")
+
+    // THE FIX FOR VERSION 65:
+    // We tell Shadow to physically ignore the Java 21 folders inside the JARs it scans.
+    exclude("META-INF/versions/21/**")
+    exclude("META-INF/versions/17/**") // Optional, but keeps things clean
+    exclude("**/module-info.class")
 
     mergeServiceFiles()
-
-    // Disable minimize() entirely until the build passes.
-    // It's likely trying to scan more files and hitting the error.
 }
 
 publishing {
