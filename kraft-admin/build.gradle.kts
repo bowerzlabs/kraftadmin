@@ -80,7 +80,7 @@ publishing {
 
         maven {
             name = "OSSRH" // Open Source Software Repository Hosting
-            url = uri("https://central.sonatype.com/service/local/staging/deploy/maven2/")
+            url = uri("https://central.sonatype.com/repository/maven-releases/")
             credentials {
                 username = System.getenv("MAVEN_USERNAME")
                 password = System.getenv("MAVEN_PASSWORD")
