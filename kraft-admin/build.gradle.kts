@@ -5,51 +5,73 @@ plugins {
     id("buildsrc.convention.kotlin-jvm")
 }
 
-group = "com.kraftadmin"
-version = "0.0.1"
+group = "com.bowerzlabs"
+version = "0.1.0-beta"
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    // These are bundled into the Shadow JAR
     api(project(":kraft-core"))
     api(project(":kraftadmin-springboot-adapter"))
     implementation(project(":kraftadmin-ui"))
+
     testImplementation(kotlin("test"))
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
-
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21) // Updated to 21 to match your system goals
 }
 
-// Optional: configure fat/uber jar
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveBaseName.set("kraft-admin")
-    archiveVersion.set("0.0.1")
-    archiveClassifier.set("")  // No -all
-    mergeServiceFiles()        // important for Spring Boot META-INF/services
+    archiveClassifier.set("")
+    mergeServiceFiles()
+    minimize()
 }
 
-// Maven publishing configuration
 publishing {
     publications {
-        create<MavenPublication>("maven") {
-            groupId = "com.kraftadmin"
+        create<MavenPublication>("mavenJava") {
+            groupId = "com.bowerzlabs"
             artifactId = "kraft-admin"
-            version = "0.0.1"
+            version = "0.1.0-beta"
 
-            // Use our fat JAR as the main artifact
-//            artifact(tasks["uberJar"])
-            artifact(tasks.named("shadowJar").get())
+            project.shadow.component(this)
+
+            artifact(tasks.named("sourcesJar"))
+            artifact(tasks.named("javadocJar"))
+
+            pom {
+                name.set("KraftAdmin")
+                description.set("A high-performance, reactive admin dashboard & telemetry engine for Spring Boot.")
+                url.set("https://github.com/bowerzlabs/kraftadmin")
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("nyadero")
+                        name.set("Nyadero Brian Odhiambo")
+                        email.set("hello@bowerzlabs.com")
+                    }
+                }
+            }
         }
     }
 
     repositories {
+        // kept for local testing
         maven {
             name = "local"
             url = uri(System.getProperty("user.home") + "/.m2/repository")
@@ -57,8 +79,6 @@ publishing {
     }
 }
 
-// Optional: use JUnit platform for tests
 tasks.test {
     useJUnitPlatform()
 }
-

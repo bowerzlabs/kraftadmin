@@ -1,0 +1,43 @@
+name: Publish KraftAdmin Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on tags like v0.1.0-beta
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for GitHub Releases
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          # Configures ~/.m2/settings.xml for Sonatype
+          server-id: central
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+
+      - name: Build & Publish to Maven Central
+        run: ./gradlew publishAllPublicationsToCentralPortal
+        env:
+          MAVEN_USERNAME: ${{ secrets.SONATYPE_TOKEN_USER }}
+          MAVEN_PASSWORD: ${{ secrets.SONATYPE_TOKEN_PASS }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Generate GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # This automatically creates a professional changelog from PRs/Commits
+          generate_release_notes: true
+          files: |
+            build/libs/*-all.jar
+            build/libs/*.jar
+          prerelease: ${{ contains(github.ref, 'beta') }}

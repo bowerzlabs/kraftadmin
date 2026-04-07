@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.kraftadmin"
-version = "0.0.1"
+version = "0.0.1-beta"
 
 repositories {
     mavenCentral()
