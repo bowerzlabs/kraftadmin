@@ -24,12 +24,12 @@ jobs:
 
       # ✅ Added: GPG key must be imported before Gradle runs
       - name: Import GPG key
-        run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+        run: echo "${{ secrets.GPG_KEY }}" | gpg --batch --import
 
       - name: Stage artifacts
         run: ./gradlew :kraft-admin:publishMavenJavaPublicationToStagingDirRepository
         env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       # Added: fail early if .asc files weren't generated
