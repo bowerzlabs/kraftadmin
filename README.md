@@ -239,5 +239,3 @@ kraftadmin:
 | ![Edit View](screenshots/edit_resource.png) <br> **Edit View** | ![Details Page](screenshots/resource_details.png) <br> **Details Page** |
 |----------------|----------------|
 | Modify existing entity records with inline validation and dynamic input types. | Detailed view of a single entity, showing relationships, audit info, and metadata. |
-
----
