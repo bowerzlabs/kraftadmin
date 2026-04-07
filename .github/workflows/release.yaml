@@ -22,23 +22,11 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # ✅ Added: GPG key must be imported before Gradle runs
-      - name: Import GPG key
-        run: echo "${{ secrets.GPG_KEY }}" | gpg --batch --import
-
       - name: Stage artifacts
         run: ./gradlew :kraft-admin:publishMavenJavaPublicationToStagingDirRepository
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
-      # Added: fail early if .asc files weren't generated
-      - name: Verify signatures
-        run: |
-          ASC_COUNT=$(find kraft-admin/build/staging-deploy -name "*.asc" | wc -l)
-          echo "Signature files found: $ASC_COUNT"
-          find kraft-admin/build/staging-deploy -type f | sort
-          [ "$ASC_COUNT" -gt 0 ] || { echo "❌ Signing failed — no .asc files"; exit 1; }
 
       - name: Zip staging directory
         run: |

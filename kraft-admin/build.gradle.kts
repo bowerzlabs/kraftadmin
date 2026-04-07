@@ -90,7 +90,7 @@ tasks.test {
 }
 
 signing {
-    val signingKey = System.getenv("GPG_PRIVATE_KEY")
+    val signingKey = System.getenv("GPG_KEY")
     val signingPassphrase = System.getenv("GPG_PASSPHRASE")
 
     if (!signingKey.isNullOrBlank()) {
