@@ -34,7 +34,7 @@ jobs:
             echo "Key starts with: ${GPG_PRIVATE_KEY:0:30}"
             echo "Passphrase present: $( [ -n "$GPG_PASSPHRASE" ] && echo yes || echo NO )"
           env:
-            GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+            GPG_PRIVATE_KEY: ${{ secrets.GPG_KEY }}
             GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Verify signatures
