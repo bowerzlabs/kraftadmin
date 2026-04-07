@@ -1,7 +1,3 @@
-import java.util.Base64
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
-
 plugins {
     `java-library`
     `maven-publish`
@@ -11,7 +7,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.0-beta"
+version = "0.1.1-beta"
 
 java {
     withSourcesJar()
@@ -30,7 +26,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 }
 
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
