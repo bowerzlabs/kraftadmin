@@ -228,7 +228,6 @@ kraftadmin:
 - **Heavyweight CMS Replacement**  
   Not a replacement for platforms like WordPress or Contentful — focused on data management and telemetry, not content publishing.
 
-
 ## KraftAdmin Screenshots
 
 ### Compact Table View
