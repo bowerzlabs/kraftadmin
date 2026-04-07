@@ -91,10 +91,10 @@ tasks.test {
 
 signing {
     val signingKey = System.getenv("GPG_KEY")
+        ?: error("GPG_KEY environment variable is not set")
     val signingPassphrase = System.getenv("GPG_PASSPHRASE")
+        ?: error("GPG_PASSPHRASE environment variable is not set")
 
-    if (!signingKey.isNullOrBlank()) {
-        useInMemoryPgpKeys(signingKey, signingPassphrase)
-        sign(publishing.publications["mavenJava"])
-    }
+    useInMemoryPgpKeys(signingKey, signingPassphrase)
+    sign(publishing.publications["mavenJava"])
 }

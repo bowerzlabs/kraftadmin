@@ -25,7 +25,7 @@ jobs:
       - name: Stage artifacts
         run: ./gradlew :kraft-admin:publishMavenJavaPublicationToStagingDirRepository
         env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_KEY }}
+          GPG_KEY: ${{ secrets.GPG_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Verify signatures
