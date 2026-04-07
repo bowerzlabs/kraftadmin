@@ -28,11 +28,12 @@ jobs:
           gpg-passphrase: GPG_PASSPHRASE
 
       - name: Build & Publish to Maven Central
-        run: ./gradlew publishAllPublicationsToCentralPortal
+        run: ./gradlew :kraft-admin:publish
         env:
-          MAVEN_USERNAME: ${{ secrets.SONATYPE_TOKEN_USER }}
-          MAVEN_PASSWORD: ${{ secrets.SONATYPE_TOKEN_PASS }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+            MAVEN_USERNAME: ${{ secrets.SONATYPE_TOKEN_USER }}
+            MAVEN_PASSWORD: ${{ secrets.SONATYPE_TOKEN_PASS }}
+            GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+            GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Generate GitHub Release
         uses: softprops/action-gh-release@v2
