@@ -3,6 +3,7 @@ plugins {
     `maven-publish`
     signing
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("os.libera.central-portal-publishing") version "0.0.4"
     id("buildsrc.convention.kotlin-jvm")
 }
 
@@ -78,14 +79,24 @@ publishing {
             url = uri(System.getProperty("user.home") + "/.m2/repository")
         }
 
-        maven {
-            name = "OSSRH" // Open Source Software Repository Hosting
-            url = uri("https://central.sonatype.com/repository/maven-releases/")
-            credentials {
-                username = System.getenv("MAVEN_USERNAME")
-                password = System.getenv("MAVEN_PASSWORD")
+//        maven {
+//            name = "OSSRH" // Open Source Software Repository Hosting
+//            url = uri("https://central.sonatype.com/repository/maven-releases/")
+//            credentials {
+//                username = System.getenv("MAVEN_USERNAME")
+//                password = System.getenv("MAVEN_PASSWORD")
+//            }
+//        }
+
+            maven {
+                name = "CentralPortal"
+                // This is the correct "upload" URL for the Central Portal API
+                url = uri("https://central.sonatype.com/api/v1/publisher/upload")
+                credentials {
+                    username = System.getenv("MAVEN_USERNAME")
+                    password = System.getenv("MAVEN_PASSWORD")
+                }
             }
-        }
     }
 }
 
