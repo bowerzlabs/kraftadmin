@@ -241,5 +241,3 @@ kraftadmin:
 | Modify existing entity records with inline validation and dynamic input types. | Detailed view of a single entity, showing relationships, audit info, and metadata. |
 
 ---
-
-# kraftadmin
