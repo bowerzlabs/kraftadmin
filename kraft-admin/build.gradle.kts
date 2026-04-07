@@ -2,6 +2,7 @@ plugins {
     `java-library`
     `maven-publish`
     signing
+//    id("com.github.johnrengelman.shadow") version "8.1.1"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("buildsrc.convention.kotlin-jvm")
 }
@@ -29,11 +30,31 @@ kotlin {
     jvmToolchain(17)
 }
 
+//tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+//    archiveBaseName.set("kraft-admin")
+//    archiveClassifier.set("")
+//    mergeServiceFiles()
+//    minimize()
+//}
+
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
+
+    configurations = listOf(project.configurations.runtimeClasspath.get())
+
+    // Relocate but STRICTLY EXCLUDE meta-inf versions which hold the Java 21 bytecode
+    relocate("kotlin", "com.bowerzlabs.kraftadmin.shaded.kotlin") {
+        exclude("META-INF/versions/**")
+    }
+    relocate("kotlinx", "com.bowerzlabs.kraftadmin.shaded.kotlinx") {
+        exclude("META-INF/versions/**")
+    }
+
     mergeServiceFiles()
-    minimize()
+
+    // Disable minimize() entirely until the build passes.
+    // It's likely trying to scan more files and hitting the error.
 }
 
 publishing {
@@ -83,26 +104,6 @@ publishing {
 
 tasks.test {
     useJUnitPlatform()
-}
-
-tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
-    archiveBaseName.set("kraft-admin")
-    archiveClassifier.set("")
-
-    // 1. Tell Shadow to include everything from the runtime classpath
-    configurations = listOf(project.configurations.runtimeClasspath.get())
-
-    // 2. Relocate Kotlin Reflect and StdLib so they don't leak to Java users
-    // This renames 'kotlin.**' to 'com.bowerzlabs.kraftadmin.shaded.kotlin.**'
-    relocate("kotlin", "com.bowerzlabs.kraftadmin.shaded.kotlin")
-    relocate("kotlinx", "com.bowerzlabs.kraftadmin.shaded.kotlinx")
-
-    mergeServiceFiles()
-
-    // 3. IMPORTANT: Be careful with minimize().
-    // Reflection often happens via string lookups that minimize() can't see.
-    // Try disabling it if the bug persists.
-    // minimize()
 }
 
 signing {
