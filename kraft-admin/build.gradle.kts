@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.3-beta"
+version = "0.1.4-beta"
 
 java {
     withSourcesJar()
@@ -24,6 +24,7 @@ dependencies {
     api(project(":kraftadmin-springboot-adapter"))
     implementation(project(":kraftadmin-ui"))
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    api("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
     testImplementation(kotlin("test"))
 }
 
@@ -44,17 +45,12 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
 
     from(project.configurations.runtimeClasspath.get())
 
-    //  Relocate the Reflection internals (This was our original goal)
+    //  Relocate the Reflection internals
     relocate("kotlin.reflect", "com.bowerzlabs.kraftadmin.shaded.kotlin.reflect")
 
-    // Relocate Kotlin internals, but NOT the top-level 'kotlin' package
-    // This renames things like 'kotlin.jvm.internal' but keeps 'kotlin.Any' intact
-    relocate("kotlin.jvm", "com.bowerzlabs.kraftadmin.shaded.kotlin.jvm")
-    relocate("kotlinx", "com.bowerzlabs.kraftadmin.shaded.kotlinx")
-
     exclude("META-INF/versions/21/**")
-    exclude("META-INF/versions/17/**")
     exclude("**/module-info.class")
+    mergeServiceFiles()
 
     mergeServiceFiles()
 }
@@ -64,7 +60,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "com.bowerzlabs"
             artifactId = "kraft-admin"
-            version = "0.1.3-beta"
+            version = "0.1.4-beta"
 
             project.shadow.component(this)
             artifact(tasks.named("sourcesJar"))
