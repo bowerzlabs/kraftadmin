@@ -1,9 +1,12 @@
+import java.util.Base64
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+
 plugins {
     `java-library`
     `maven-publish`
     signing
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("os.libera.central-portal-publishing") version "0.0.4"
     id("buildsrc.convention.kotlin-jvm")
 }
 
@@ -20,16 +23,14 @@ repositories {
 }
 
 dependencies {
-    // These are bundled into the Shadow JAR
     api(project(":kraft-core"))
     api(project(":kraftadmin-springboot-adapter"))
     implementation(project(":kraftadmin-ui"))
-
     testImplementation(kotlin("test"))
 }
 
 kotlin {
-    jvmToolchain(21) // Updated to 21 to match your system goals
+    jvmToolchain(21)
 }
 
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
@@ -47,7 +48,6 @@ publishing {
             version = "0.1.0-beta"
 
             project.shadow.component(this)
-
             artifact(tasks.named("sourcesJar"))
             artifact(tasks.named("javadocJar"))
 
@@ -68,35 +68,20 @@ publishing {
                         email.set("hello@bowerzlabs.com")
                     }
                 }
+                scm {
+                    connection.set("scm:git:git://github.com/bowerzlabs/kraftadmin.git")
+                    developerConnection.set("scm:git:ssh://github.com/bowerzlabs/kraftadmin.git")
+                    url.set("https://github.com/bowerzlabs/kraftadmin")
+                }
             }
         }
     }
 
     repositories {
-        // kept for local testing
         maven {
-            name = "local"
-            url = uri(System.getProperty("user.home") + "/.m2/repository")
+            name = "StagingDir"
+            url = uri(layout.buildDirectory.dir("staging-deploy"))
         }
-
-//        maven {
-//            name = "OSSRH" // Open Source Software Repository Hosting
-//            url = uri("https://central.sonatype.com/repository/maven-releases/")
-//            credentials {
-//                username = System.getenv("MAVEN_USERNAME")
-//                password = System.getenv("MAVEN_PASSWORD")
-//            }
-//        }
-
-            maven {
-                name = "CentralPortal"
-                // This is the correct "upload" URL for the Central Portal API
-                url = uri("https://central.sonatype.com/api/v1/publisher/upload")
-                credentials {
-                    username = System.getenv("MAVEN_USERNAME")
-                    password = System.getenv("MAVEN_PASSWORD")
-                }
-            }
     }
 }
 
@@ -110,7 +95,6 @@ signing {
 
     if (!signingKey.isNullOrBlank()) {
         useInMemoryPgpKeys(signingKey, signingPassphrase)
-        // This ensures the mavenJava publication is signed
         sign(publishing.publications["mavenJava"])
     }
 }

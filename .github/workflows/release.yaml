@@ -5,13 +5,14 @@ on:
     branches:
       - main
     tags:
-      - 'v*' # Trigger on tags like v0.1.0-beta
+      - 'v*'
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Required for GitHub Releases
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,27 +21,32 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          # Configures ~/.m2/settings.xml for Sonatype
-          server-id: central
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
-          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: GPG_PASSPHRASE
 
-      - name: Build & Publish to Maven Central
-        run: ./gradlew :kraft-admin:publish
+      - name: Stage artifacts
+        run: ./gradlew :kraft-admin:publishMavenJavaPublicationToStagingDirRepository
         env:
-            MAVEN_USERNAME: ${{ secrets.SONATYPE_TOKEN_USER }}
-            MAVEN_PASSWORD: ${{ secrets.SONATYPE_TOKEN_PASS }}
-            GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-            GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Zip staging directory
+        run: |
+          cd kraft-admin/build/staging-deploy
+          zip -r ../bundle.zip .
+
+      - name: Upload to Maven Central Portal
+        run: |
+          RESPONSE=$(curl --fail-with-body \
+            --request POST \
+            --header "Authorization: Bearer $(echo -n '${{ secrets.SONATYPE_TOKEN_USER }}:${{ secrets.SONATYPE_TOKEN_PASS }}' | base64 -w 0)" \
+            --form "bundle=@kraft-admin/build/bundle.zip;type=application/octet-stream" \
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC")
+          echo "Deployment ID: $RESPONSE"
 
       - name: Generate GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          # This automatically creates a professional changelog from PRs/Commits
           generate_release_notes: true
           files: |
-            build/libs/*-all.jar
-            build/libs/*.jar
+            kraft-admin/build/libs/*.jar
           prerelease: ${{ contains(github.ref, 'beta') }}
