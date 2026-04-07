@@ -1,0 +1,43 @@
+{
+  "basePath" : "/admin",
+  "title" : "KraftAdmin Sample 1",
+  "logoUrl" : "https://your-assets.com/logo.png",
+  "theme" : {
+    "primaryColor" : "#ff7800",
+    "darkMode" : true
+  },
+  "storage" : {
+    "uploadDir" : "uploads/admin",
+    "publicUrlPrefix" : "/admin/files"
+  },
+  "security" : {
+    "cookieName" : "MY_APP_AUTH",
+    "sessionExpiryMinutes" : 120,
+    "requiredRoles" : [ "ROLE_ADMIN" ],
+    "protectedRoutes" : {
+      "apiusers" : [ "ROLE_SUPERUSER" ],
+      "apisettings" : [ "ROLE_ADMIN" ]
+    },
+    "basicAuth" : {
+      "username" : "boaz@bowerzlabs.com",
+      "password" : "password"
+    }
+  },
+  "pagination" : {
+    "defaultPageSize" : 20,
+    "maxPageSize" : 100
+  },
+  "features" : {
+    "allowDelete" : true,
+    "showTimestamps" : true,
+    "readOnly" : false
+  },
+  "localeConfig" : {
+    "defaultLanguage" : "en",
+    "timezone" : "UTC"
+  },
+  "telemetryConfig" : {
+    "cloudUrl" : "http://localhost:8090",
+    "enabled" : true
+  }
+}

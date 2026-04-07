@@ -1,0 +1,7 @@
+com.kraftadmin.config.KraftAdminSpringBootAutoConfiguration
+com.kraftadmin.config.KraftAdminJpaAutoConfiguration
+com.kraftadmin.config.KraftAdminMongoAutoConfiguration
+com.kraftadmin.config.KraftAdminDiscoveryAutoConfiguration
+com.kraftadmin.config.KraftAdminWebConfiguration
+com.kraftadmin.persistence.service.KraftSettingsService
+com.kraftadmin.controller.KraftSettingsController

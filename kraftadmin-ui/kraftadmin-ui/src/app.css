@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  /* Semantic Mappings */
+  --color-brand-primary: var(--brand-primary);
+  --color-bg-main: var(--bg-main);
+  --color-bg-surface: var(--bg-surface);
+  --color-text-main: var(--text-main);
+  --color-border-subtle: var(--border-subtle);
+
+  /* Status Colors */
+  --color-success: #22c55e; /* Green */
+  --color-danger: #ef4444;  /* Red */
+  --color-info: #3b82f6;    /* Blue */
+}
+
+:root {
+  /* Light Mode - Slate & Blue focus */
+  --brand-primary: #3b82f6;    /* Blue 600 */
+  --bg-main: #f8fafc;          /* Slate 50 */
+  --bg-surface: #ffffff;       /* White */
+  --text-main: #0f172a;        /* Slate 900 */
+  --border-subtle: #e2e8f0;    /* Slate 200 */
+}
+
+/* Standard class selector for Tailwind */
+.dark {
+  /* Dark Mode - Black & Slate focus */
+  --brand-primary: #60a5fa;    /* Blue 400 */
+  --bg-main: #020617;          /* Slate 950 / Near Black */
+  --bg-surface: #0f172a;       /* Slate 900 */
+  --text-main: #f1f5f9;        /* Slate 100 */
+  --border-subtle: #1e293b;    /* Slate 800 */
+}
