@@ -28,15 +28,6 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Debug signing env
-        run: |
-            echo "Key present: $( [ -n "$GPG_PRIVATE_KEY" ] && echo yes || echo NO )"
-            echo "Key starts with: ${GPG_PRIVATE_KEY:0:30}"
-            echo "Passphrase present: $( [ -n "$GPG_PASSPHRASE" ] && echo yes || echo NO )"
-          env:
-            GPG_PRIVATE_KEY: ${{ secrets.GPG_KEY }}
-            GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
       - name: Verify signatures
         run: |
           ASC_COUNT=$(find kraft-admin/build/staging-deploy -name "*.asc" | wc -l)
