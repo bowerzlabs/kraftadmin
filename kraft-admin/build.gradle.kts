@@ -89,11 +89,29 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+    archiveBaseName.set("kraft-admin")
+    archiveClassifier.set("")
+
+    // 1. Tell Shadow to include everything from the runtime classpath
+    configurations = listOf(project.configurations.runtimeClasspath.get())
+
+    // 2. Relocate Kotlin Reflect and StdLib so they don't leak to Java users
+    // This renames 'kotlin.**' to 'com.bowerzlabs.kraftadmin.shaded.kotlin.**'
+    relocate("kotlin", "com.bowerzlabs.kraftadmin.shaded.kotlin")
+    relocate("kotlinx", "com.bowerzlabs.kraftadmin.shaded.kotlinx")
+
+    mergeServiceFiles()
+
+    // 3. IMPORTANT: Be careful with minimize().
+    // Reflection often happens via string lookups that minimize() can't see.
+    // Try disabling it if the bug persists.
+    // minimize()
+}
+
 signing {
     val signingKey = System.getenv("GPG_KEY")
-        ?: error("GPG_KEY environment variable is not set")
     val signingPassphrase = System.getenv("GPG_PASSPHRASE")
-        ?: error("GPG_PASSPHRASE environment variable is not set")
 
     useInMemoryPgpKeys(signingKey, signingPassphrase)
     sign(publishing.publications["mavenJava"])
