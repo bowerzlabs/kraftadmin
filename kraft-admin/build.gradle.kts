@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.8-beta"
+version = "0.1.9-beta"
 
 java {
     withSourcesJar()
@@ -30,8 +30,8 @@ dependencies {
     // implementation = bundled into shadow JAR and relocated
     // Java consumers get Kotlin without declaring it manually
     // Kotlin consumers use their own Kotlin — no conflict because it's relocated
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
+    api("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
+    api("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
 
     testImplementation(kotlin("test"))
 }
@@ -63,22 +63,16 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
 
-    // 1. Relocate the actual Bytecode
-    relocate("kotlin", "com.bowerzlabs.kraftadmin.internal.kotlin")
-    relocate("kotlinx", "com.bowerzlabs.kraftadmin.internal.kotlinx")
+    // ✅ Exclude — declared as api deps in POM instead, NOT bundled
+    exclude("kotlin/**")
+    exclude("kotlinx/**")
 
-    // 2. CRITICAL: Relocate the Metadata/Built-ins
-    // Reflection looks for 'kotlin/kotlin.kotlin_builtins'.
-    // Since we moved 'kotlin' to 'internal.kotlin', we must move these too.
-    relocate("META-INF/kotlin/", "com/bowerzlabs/kraftadmin/internal/kotlin/")
-
-    // 3. Clean up the JAR
+    exclude("com/fasterxml/**")
+    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
     exclude("META-INF/versions/21/**")
     exclude("**/module-info.class")
 
-    // Explicitly kill Jackson auto-registration to protect non-JPA apps
-    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
-
+    // No relocate() calls at all
     mergeServiceFiles()
 }
 
@@ -87,7 +81,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "com.bowerzlabs"
             artifactId = "kraft-admin"
-            version = "0.1.8-beta"
+            version = "0.1.9-beta"
 
             project.shadow.component(this)
             artifact(tasks.named("sourcesJar"))
@@ -119,6 +113,20 @@ publishing {
                 // Kotlin is bundled+relocated inside the JAR so NOT a POM dependency
                 // Java consumers get it automatically, Kotlin consumers use their own
                 // No need to declare kotlin-stdlib/reflect here
+                withXml {
+                    val depsNode = asNode().appendNode("dependencies")
+                    listOf(
+                        Triple("org.jetbrains.kotlin", "kotlin-stdlib", "1.9.24"),
+                        Triple("org.jetbrains.kotlin", "kotlin-reflect", "1.9.24")
+                    ).forEach { (g, a, v) ->
+                        depsNode.appendNode("dependency").apply {
+                            appendNode("groupId", g)
+                            appendNode("artifactId", a)
+                            appendNode("version", v)
+                            appendNode("scope", "compile")
+                        }
+                    }
+                }
             }
         }
     }

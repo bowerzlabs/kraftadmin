@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.7-beta"
+version = "0.1.9-beta"
 
 repositories {
     mavenCentral()
