@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.4-beta"
+version = "0.1.5-beta"
 
 java {
     withSourcesJar()
@@ -61,7 +61,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "com.bowerzlabs"
             artifactId = "kraft-admin"
-            version = "0.1.4-beta"
+            version = "0.1.5-beta"
 
             project.shadow.component(this)
             artifact(tasks.named("sourcesJar"))

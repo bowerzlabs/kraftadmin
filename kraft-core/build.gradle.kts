@@ -3,8 +3,8 @@ plugins {
     id("buildsrc.convention.kotlin-jvm")
 }
 
-group = "com.kraftadmin"
-version = "0.1.4-beta"
+group = "com.bowerzlabs"
+version = "0.1.5-beta"
 
 repositories {
     mavenCentral()

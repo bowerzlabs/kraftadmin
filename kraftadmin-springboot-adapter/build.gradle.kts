@@ -4,8 +4,8 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.kraftadmin"
-version = "0.1.1-beta"
+group = "com.bowerzlabs"
+version = "0.1.5-beta"
 
 repositories {
     mavenCentral()
