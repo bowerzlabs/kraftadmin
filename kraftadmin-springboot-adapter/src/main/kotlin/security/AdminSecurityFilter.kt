@@ -33,7 +33,6 @@ class AdminSecurityFilter(
         response: ServletResponse,
         filterChain: FilterChain,
     ) {
-
         logger.info("filtering request: $request, response: $response, filter chain: $filterChain")
         val httpRequest = request as HttpServletRequest
         val httpResponse = response as HttpServletResponse

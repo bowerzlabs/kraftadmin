@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.5-beta"
+version = "0.1.6-beta"
 
 java {
     withSourcesJar()
@@ -18,15 +18,15 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    api(project(":kraft-core"))
-    api(project(":kraftadmin-springboot-adapter"))
-    implementation(project(":kraftadmin-ui"))
-    // available at compile time but NOT bundled
-    compileOnly("org.jetbrains.kotlin:kotlin-reflect")
-    compileOnly("org.jetbrains.kotlin:kotlin-stdlib")
-    testImplementation(kotlin("test"))
-}
+//dependencies {
+//    api(project(":kraft-core"))
+//    api(project(":kraftadmin-springboot-adapter"))
+//    implementation(project(":kraftadmin-ui"))
+//    // bundled
+//    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
+//    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
+//    testImplementation(kotlin("test"))
+//}
 
 kotlin {
     jvmToolchain(17)
@@ -39,21 +39,46 @@ kotlin {
 //    minimize()
 //}
 
+dependencies {
+    api(project(":kraft-core"))
+    api(project(":kraftadmin-springboot-adapter"))
+    implementation(project(":kraftadmin-ui"))
+
+    // api = appears in published POM as transitive dep
+    // Java consumers without Kotlin get these pulled in automatically
+    api("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
+    api("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
+
+    // compileOnly = Spring Boot provides these at runtime in consumer apps
+    compileOnly("com.fasterxml.jackson.core:jackson-databind")
+    compileOnly("com.fasterxml.jackson.module:jackson-module-kotlin")
+    compileOnly("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+    // ❌ Never bundle hibernate6 module — requires Hibernate internals
+
+    testImplementation(kotlin("test"))
+    testRuntimeOnly("com.fasterxml.jackson.core:jackson-databind")
+    testRuntimeOnly("com.fasterxml.jackson.module:jackson-module-kotlin")
+}
+
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
 
-//    from(project.configurations.runtimeClasspath.get())
-
-//    exclude("META-INF/versions/21/**")
-//    exclude("**/module-info.class")
-
+    // Don't bundle Kotlin — declared as api deps, consumers get them via POM
     exclude("kotlin/**")
     exclude("kotlinx/**")
+
+    // Don't bundle Jackson — Spring Boot manages its own versions
+    exclude("com/fasterxml/**")
+
+    // Prevent any service registrations from leaking into consumer classpath
+    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
+    exclude("META-INF/services/com.fasterxml.jackson.core.JsonFactory")
+
     exclude("META-INF/versions/21/**")
     exclude("**/module-info.class")
 
-    mergeServiceFiles()
+    // ❌ No mergeServiceFiles() — leaks registrations from all bundled deps
 }
 
 publishing {
@@ -61,7 +86,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "com.bowerzlabs"
             artifactId = "kraft-admin"
-            version = "0.1.5-beta"
+            version = "0.1.6-beta"
 
             project.shadow.component(this)
             artifact(tasks.named("sourcesJar"))
