@@ -49,36 +49,19 @@ dependencies {
     api("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
     api("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
 
-    // compileOnly = Spring Boot provides these at runtime in consumer apps
-    compileOnly("com.fasterxml.jackson.core:jackson-databind")
-    compileOnly("com.fasterxml.jackson.module:jackson-module-kotlin")
-    compileOnly("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
-    // ❌ Never bundle hibernate6 module — requires Hibernate internals
-
     testImplementation(kotlin("test"))
-    testRuntimeOnly("com.fasterxml.jackson.core:jackson-databind")
-    testRuntimeOnly("com.fasterxml.jackson.module:jackson-module-kotlin")
+
 }
 
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
-
-    // Don't bundle Kotlin — declared as api deps, consumers get them via POM
     exclude("kotlin/**")
     exclude("kotlinx/**")
-
-    // Don't bundle Jackson — Spring Boot manages its own versions
     exclude("com/fasterxml/**")
-
-    // Prevent any service registrations from leaking into consumer classpath
     exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
-    exclude("META-INF/services/com.fasterxml.jackson.core.JsonFactory")
-
     exclude("META-INF/versions/21/**")
     exclude("**/module-info.class")
-
-    // ❌ No mergeServiceFiles() — leaks registrations from all bundled deps
 }
 
 publishing {
