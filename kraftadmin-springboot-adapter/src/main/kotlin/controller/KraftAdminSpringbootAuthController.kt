@@ -3,6 +3,7 @@ package com.kraftadmin.controller
 
 import com.kraftadmin.security.AdminRequest
 import com.kraftadmin.security.AdminSessionStore
+import com.kraftadmin.security.NoFrameworkSecurityCondition
 import com.kraftadmin.security.SecurityProviderChain
 import com.kraftadmin.security.SessionConfig
 import jakarta.servlet.http.Cookie
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
+import org.springframework.context.annotation.Conditional
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -37,7 +39,8 @@ import java.util.Base64
  */
 @RestController
 @RequestMapping("\${kraftadmin.base-path:/admin}/api/auth")
-@ConditionalOnExpression("!T(com.kraftadmin.config.KraftAdminSpringSecurityConfig).isSpringSecurityActive()")
+//@ConditionalOnExpression("!T(com.kraftadmin.config.KraftAdminSpringSecurityConfig).isSpringSecurityActive()")
+@Conditional(NoFrameworkSecurityCondition::class)
 class KraftAdminSpringbootAuthController(
     private val chain: SecurityProviderChain,
     private val sessionStore: AdminSessionStore,
