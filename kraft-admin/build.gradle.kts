@@ -45,9 +45,13 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
     relocate("kotlin", "com.bowerzlabs.kraftadmin.internal.kotlin")
     relocate("kotlinx", "com.bowerzlabs.kraftadmin.internal.kotlinx")
 
+    // Don't bundle Jackson — Spring Boot provides it
+    exclude("com/fasterxml/**")
+    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
+    exclude("META-INF/services/com.fasterxml.jackson.core.JsonFactory")
+
     exclude("META-INF/versions/21/**")
     exclude("**/module-info.class")
-    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
 
     // Keep service files for your own library's auto-configuration
     // but merge carefully — only kraftadmin services should be here
@@ -109,7 +113,7 @@ tasks.test {
 }
 
 signing {
-    val signingKey = System.getenv("GPG_PRIVATE_KEY")
+    val signingKey = System.getenv("GPG_KEY")
     val signingPassphrase = System.getenv("GPG_PASSPHRASE")
 
     if (!signingKey.isNullOrBlank()) {
