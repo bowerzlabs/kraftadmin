@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.6-beta"
+version = "0.1.7-beta"
 
 java {
     withSourcesJar()
@@ -22,22 +22,16 @@ kotlin {
     jvmToolchain(17)
 }
 
-//tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
-//    archiveBaseName.set("kraft-admin")
-//    archiveClassifier.set("")
-//    mergeServiceFiles()
-//    minimize()
-//}
-
 dependencies {
     api(project(":kraft-core"))
     api(project(":kraftadmin-springboot-adapter"))
     implementation(project(":kraftadmin-ui"))
 
-    // api = appears in published POM as transitive dep
-    // Java consumers without Kotlin get these pulled in automatically
-    api("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
-    api("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
+    // implementation = bundled into shadow JAR and relocated
+    // Java consumers get Kotlin without declaring it manually
+    // Kotlin consumers use their own Kotlin — no conflict because it's relocated
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
 
     testImplementation(kotlin("test"))
 }
@@ -45,12 +39,20 @@ dependencies {
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
-    exclude("kotlin/**")
-    exclude("kotlinx/**")
-    exclude("com/fasterxml/**")
-    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
+
+    // Relocate Kotlin into a private package so it doesn't clash
+    // with the consumer app's own Kotlin runtime
+    relocate("kotlin", "com.bowerzlabs.kraftadmin.internal.kotlin")
+    relocate("kotlinx", "com.bowerzlabs.kraftadmin.internal.kotlinx")
+
     exclude("META-INF/versions/21/**")
     exclude("**/module-info.class")
+    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
+
+    // Keep service files for your own library's auto-configuration
+    // but merge carefully — only kraftadmin services should be here
+    // after excluding Jackson's service registrations above
+    mergeServiceFiles()
 }
 
 publishing {
@@ -58,7 +60,7 @@ publishing {
         create<MavenPublication>("mavenJava") {
             groupId = "com.bowerzlabs"
             artifactId = "kraft-admin"
-            version = "0.1.6-beta"
+            version = "0.1.7-beta"
 
             project.shadow.component(this)
             artifact(tasks.named("sourcesJar"))
@@ -86,6 +88,10 @@ publishing {
                     developerConnection.set("scm:git:ssh://github.com/bowerzlabs/kraftadmin.git")
                     url.set("https://github.com/bowerzlabs/kraftadmin")
                 }
+
+                // Kotlin is bundled+relocated inside the JAR so NOT a POM dependency
+                // Java consumers get it automatically, Kotlin consumers use their own
+                // No need to declare kotlin-stdlib/reflect here
             }
         }
     }
@@ -103,10 +109,9 @@ tasks.test {
 }
 
 signing {
-    val signingKey = System.getenv("GPG_KEY")
+    val signingKey = System.getenv("GPG_PRIVATE_KEY")
     val signingPassphrase = System.getenv("GPG_PASSPHRASE")
 
-    // Only attempt to sign if the key is actually there
     if (!signingKey.isNullOrBlank()) {
         useInMemoryPgpKeys(signingKey, signingPassphrase)
         sign(publishing.publications["mavenJava"])
