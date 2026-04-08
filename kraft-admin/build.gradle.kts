@@ -18,16 +18,6 @@ repositories {
     mavenCentral()
 }
 
-//dependencies {
-//    api(project(":kraft-core"))
-//    api(project(":kraftadmin-springboot-adapter"))
-//    implementation(project(":kraftadmin-ui"))
-//    // bundled
-//    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
-//    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
-//    testImplementation(kotlin("test"))
-//}
-
 kotlin {
     jvmToolchain(17)
 }
@@ -50,7 +40,6 @@ dependencies {
     api("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
 
     testImplementation(kotlin("test"))
-
 }
 
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
@@ -112,14 +101,6 @@ publishing {
 tasks.test {
     useJUnitPlatform()
 }
-
-//signing {
-//    val signingKey = System.getenv("GPG_KEY")
-//    val signingPassphrase = System.getenv("GPG_PASSPHRASE")
-//
-//    useInMemoryPgpKeys(signingKey, signingPassphrase)
-//    sign(publishing.publications["mavenJava"])
-//}
 
 signing {
     val signingKey = System.getenv("GPG_KEY")
