@@ -3,7 +3,6 @@ plugins {
     `maven-publish`
     signing
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("com.gradleup.shadow") version "8.3.3"
     id("buildsrc.convention.kotlin-jvm")
 }
 
@@ -23,8 +22,9 @@ dependencies {
     api(project(":kraft-core"))
     api(project(":kraftadmin-springboot-adapter"))
     implementation(project(":kraftadmin-ui"))
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    api("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
+    // available at compile time but NOT bundled
+    compileOnly("org.jetbrains.kotlin:kotlin-reflect")
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib")
     testImplementation(kotlin("test"))
 }
 
@@ -43,14 +43,15 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
 
-    from(project.configurations.runtimeClasspath.get())
+//    from(project.configurations.runtimeClasspath.get())
 
-    //  Relocate the Reflection internals
-    relocate("kotlin.reflect", "com.bowerzlabs.kraftadmin.shaded.kotlin.reflect")
+//    exclude("META-INF/versions/21/**")
+//    exclude("**/module-info.class")
 
+    exclude("kotlin/**")
+    exclude("kotlinx/**")
     exclude("META-INF/versions/21/**")
     exclude("**/module-info.class")
-    mergeServiceFiles()
 
     mergeServiceFiles()
 }
@@ -104,10 +105,21 @@ tasks.test {
     useJUnitPlatform()
 }
 
+//signing {
+//    val signingKey = System.getenv("GPG_KEY")
+//    val signingPassphrase = System.getenv("GPG_PASSPHRASE")
+//
+//    useInMemoryPgpKeys(signingKey, signingPassphrase)
+//    sign(publishing.publications["mavenJava"])
+//}
+
 signing {
     val signingKey = System.getenv("GPG_KEY")
     val signingPassphrase = System.getenv("GPG_PASSPHRASE")
 
-    useInMemoryPgpKeys(signingKey, signingPassphrase)
-    sign(publishing.publications["mavenJava"])
+    // Only attempt to sign if the key is actually there
+    if (!signingKey.isNullOrBlank()) {
+        useInMemoryPgpKeys(signingKey, signingPassphrase)
+        sign(publishing.publications["mavenJava"])
+    }
 }

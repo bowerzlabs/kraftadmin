@@ -1,4 +1,4 @@
-package security
+package com.kraftadmin.security
 
 import com.kraftadmin.api.responses.AdminUserDTO
 import com.kraftadmin.security.AdminPrincipal

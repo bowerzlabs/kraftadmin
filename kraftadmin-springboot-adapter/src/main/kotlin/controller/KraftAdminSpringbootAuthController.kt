@@ -1,7 +1,10 @@
 package com.kraftadmin.controller
 
-import security.AdminSessionStore
-import security.SecurityProviderChain
+
+import com.kraftadmin.security.AdminRequest
+import com.kraftadmin.security.AdminSessionStore
+import com.kraftadmin.security.SecurityProviderChain
+import com.kraftadmin.security.SessionConfig
 import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -13,8 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import security.AdminRequest
-import security.SessionConfig
 import java.util.Base64
 
 /**

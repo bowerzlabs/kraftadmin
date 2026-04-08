@@ -1,7 +1,6 @@
 package com.kraftadmin.security
 
 import jakarta.servlet.http.HttpServletResponse
-import security.AdminResponse
 
 /**
  * Bridges [AdminResponse] to Spring's [HttpServletResponse].

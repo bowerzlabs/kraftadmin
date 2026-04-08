@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/admin/api/system/logs")
-class KraftAdminSpringbootLogController(private val logService: KraftSpringLoggingService) {
+class KraftAdminSpringbootLogController(
+    private val logService: KraftSpringLoggingService
+) {
 
     @GetMapping
     fun getLogs(): List<KraftLogEntry> {
@@ -25,6 +27,5 @@ class KraftAdminSpringbootLogController(private val logService: KraftSpringLoggi
 //            .map { logService.getAll().first() }
 //            .distinctUntilChanged()
 //    }
-
 
 }

@@ -4,9 +4,9 @@ import api.responses.ResourceDataResponse
 import api.utils.ObjectResponse
 import api.utils.ResourceRow
 import com.kraftadmin.config.KraftAdminRuntimeConfig
+import com.kraftadmin.security.SecurityProviderChain
 import com.kraftadmin.spi.EntityDiscoverer
 import com.kraftadmin.spi.KraftAdminResource
-import security.SecurityProviderChain
 import com.kraftadmin.spi.KraftEnvironmentProvider
 import com.kraftadmin.utils.validation.KraftValidationExtractor
 import com.kraftadmin.utils.validation.ValidationResponse

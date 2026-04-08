@@ -14,8 +14,8 @@ import com.kraftadmin.discovery.SpringBootEnvironmentProvider
 import com.kraftadmin.enums.KraftLogAction
 import com.kraftadmin.persistence.service.KraftSettingsService
 import com.kraftadmin.security.AdminPrincipal
+import com.kraftadmin.security.SecurityProviderChain
 import com.kraftadmin.utils.logging.KraftAdminAuditor
-import security.SecurityProviderChain
 import com.kraftadmin.spi.KraftEnvironmentProvider
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptorFactory
 import com.kraftadmin.util.JakartaValidationExtractor
@@ -115,13 +115,6 @@ class KraftAdminSpringBootAutoConfiguration(
     fun jakartaValidationExtractor(): KraftValidationExtractor =
         JakartaValidationExtractor()
 
-//    @Bean
-//    fun hibernateModule(): Hibernate6Module {
-//        val module = Hibernate6Module()
-//        // Disable the features that force Jackson to look at proxies
-//        module.disable(Hibernate6Module.Feature.USE_TRANSIENT_ANNOTATION)
-//        return module
-//    }
 
     @Bean
     @ConditionalOnMissingBean(KraftEnvironmentProvider::class)
@@ -155,15 +148,15 @@ class KraftAdminSpringBootAutoConfiguration(
     }
 
 
-    @Bean
-    fun objectMapper(): ObjectMapper {
-        return ObjectMapper()
-            .registerModule(KotlinModule.Builder().build())
-            .registerModule(JavaTimeModule())
-            // This module tells Jackson: "If you see a Hibernate Proxy, ignore the interceptors"
-            .registerModule(com.fasterxml.jackson.datatype.hibernate6.Hibernate6Module())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-    }
+//    @Bean
+//    fun objectMapper(): ObjectMapper {
+//        return ObjectMapper()
+//            .registerModule(KotlinModule.Builder().build())
+//            .registerModule(JavaTimeModule())
+//            // This module tells Jackson: "If you see a Hibernate Proxy, ignore the interceptors"
+//            .registerModule(com.fasterxml.jackson.datatype.hibernate6.Hibernate6Module())
+//            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+//    }
 
     @Bean
     @ConditionalOnMissingBean(KraftAdminAuditor::class)

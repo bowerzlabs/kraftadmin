@@ -1,7 +1,7 @@
 package com.kraftadmin.config
 
+import com.kraftadmin.security.KraftSecurityConfig
 import com.kraftadmin.spi.KraftAdminResource
-import security.KraftSecurityConfig
 
 data class KraftAdminConfig(
     val port: Int = 8090,

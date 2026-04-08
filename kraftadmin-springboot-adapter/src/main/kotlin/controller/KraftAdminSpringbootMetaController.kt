@@ -8,7 +8,7 @@ import com.kraftadmin.api.responses.KraftDashboardResponse
 import com.kraftadmin.api.responses.LibraryFeature
 import com.kraftadmin.api.responses.SystemStatus
 import com.kraftadmin.config.SpringKraftAdminProperties
-import security.SecurityProviderChain
+import com.kraftadmin.security.SecurityProviderChain
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptor
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptorFactory
 import com.kraftadmin.utils.custom_actions.KraftActionHandler

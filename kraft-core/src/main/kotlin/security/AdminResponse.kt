@@ -1,4 +1,4 @@
-package security
+package com.kraftadmin.security
 
 /**
  * Framework-agnostic view of an incoming HTTP request.

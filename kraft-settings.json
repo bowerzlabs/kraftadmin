@@ -1,6 +1,6 @@
 {
   "basePath" : "/admin",
-  "title" : "KraftAdmin Sample 1",
+  "title" : "KraftAdmin Sample",
   "logoUrl" : "https://your-assets.com/logo.png",
   "theme" : {
     "primaryColor" : "#ff7800",
@@ -20,7 +20,8 @@
     },
     "basicAuth" : {
       "username" : "boaz@bowerzlabs.com",
-      "password" : "password"
+      "password" : "password",
+      "roles" : [ ]
     }
   },
   "pagination" : {

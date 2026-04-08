@@ -1,8 +1,6 @@
-package security
+package com.kraftadmin.security
 
 import com.kraftadmin.api.responses.AdminUserDTO
-import com.kraftadmin.security.AdminPrincipal
-import com.kraftadmin.security.BasicAuthConfig
 import java.util.Base64
 import java.util.UUID
 

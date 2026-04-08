@@ -1,14 +1,20 @@
 package com.kraftadmin.config
 
+import com.kraftadmin.security.AdminSecurityConfig
 import com.kraftadmin.security.SpringSecurityAdapter
 import com.kraftadmin.security.AdminSecurityFilter
+import com.kraftadmin.security.AdminSecurityProvider
+import com.kraftadmin.security.AdminSessionStore
+import com.kraftadmin.security.BuiltinBasicAuthProvider
+import com.kraftadmin.security.SecurityProviderChain
+import com.kraftadmin.security.SessionConfig
+import com.kraftadmin.security.SessionSecurityProvider
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
-import security.*
 
 @AutoConfiguration
 @EnableConfigurationProperties(SpringKraftAdminProperties::class)
@@ -93,17 +99,25 @@ class KraftAdminSpringSecurityConfig {
         return registration
     }
 
-//    private fun isSpringSecurityActive(): Boolean = try {
-//        Class.forName("org.springframework.security.web.SecurityFilterChain", false, javaClass.classLoader)
-//        true
-//    } catch (_: ClassNotFoundException) {
-//        false
+
+//    companion object {
+//        @JvmStatic
+//        fun isSpringSecurityActive(): Boolean = try {
+//            Class.forName("org.springframework.security.web.SecurityFilterChain", false, javaClass.classLoader)
+//            true
+//        } catch (_: ClassNotFoundException) {
+//            false
+//        }
 //    }
 
     companion object {
         @JvmStatic
         fun isSpringSecurityActive(): Boolean = try {
-            Class.forName("org.springframework.security.web.SecurityFilterChain", false, javaClass.classLoader)
+            Class.forName(
+                "org.springframework.security.web.SecurityFilterChain",
+                false,
+                KraftAdminSpringSecurityConfig::class.java.classLoader
+            )
             true
         } catch (_: ClassNotFoundException) {
             false

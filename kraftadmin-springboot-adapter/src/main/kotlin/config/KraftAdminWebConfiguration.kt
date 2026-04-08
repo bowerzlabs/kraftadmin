@@ -1,6 +1,7 @@
 package com.kraftadmin.config
 
 import com.kraftadmin.controller.KraftAdminSpringbootLogController
+import com.kraftadmin.security.SecurityProviderChain
 import com.kraftadmin.util.KraftSpringLoggingService
 import com.kraftadmin.util.SpringGlobalBIInterceptor
 import com.kraftadmin.utils.telementary.KraftTelemetryService
@@ -17,8 +18,7 @@ import org.springframework.web.servlet.config.annotation.ViewControllerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import org.springframework.web.servlet.resource.PathResourceResolver
 import org.springframework.web.servlet.resource.ResourceResolverChain
-import security.AdminSecurityProvider
-import security.SecurityProviderChain
+
 import java.io.File
 
 //@Configuration
@@ -42,9 +42,6 @@ class KraftAdminWebConfiguration(
     fun springGlobalBIInterceptor(): SpringGlobalBIInterceptor {
         return SpringGlobalBIInterceptor(telemetryService, securityChain)
     }
-
-    @Bean
-    fun kraftLogController() = KraftAdminSpringbootLogController(logService)
 
     override fun addInterceptors(registry: InterceptorRegistry) {
         registry.addInterceptor(springGlobalBIInterceptor())

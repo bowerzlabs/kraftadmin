@@ -9,6 +9,7 @@ import com.kraftadmin.config.SpringKraftAdminProperties
 import com.kraftadmin.enums.FormInputType
 import com.kraftadmin.utils.logging.KraftAdminAuditor
 import com.kraftadmin.persistence.jpa.provider.JpaDataProvider
+import com.kraftadmin.security.SecurityProviderChain
 import com.kraftadmin.spi.AbstractResource
 import com.kraftadmin.spi.KraftAdminResource
 import com.kraftadmin.spi.SelectOption
@@ -22,8 +23,6 @@ import com.kraftadmin.utils.telementary.KraftTelemetryService
 import jakarta.persistence.*
 import org.springframework.context.ApplicationContext
 import org.springframework.transaction.support.TransactionTemplate
-import security.AdminSecurityProvider
-import security.SecurityProviderChain
 import java.lang.reflect.Modifier
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty

@@ -6,9 +6,7 @@ import org.springframework.security.core.AuthenticatedPrincipal
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
-import security.AdminRequest
-import security.AdminResponse
-import security.AdminSecurityProvider
+
 
 /**
  * Delegates authentication to Spring Security's [SecurityContextHolder].

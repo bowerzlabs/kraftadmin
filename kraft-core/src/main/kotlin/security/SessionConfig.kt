@@ -1,4 +1,4 @@
-package security
+package com.kraftadmin.security
 
 /**
  * Configuration for the library-managed session.

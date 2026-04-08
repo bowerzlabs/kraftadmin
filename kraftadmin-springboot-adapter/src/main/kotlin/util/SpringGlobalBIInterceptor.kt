@@ -1,5 +1,6 @@
 package com.kraftadmin.util
 
+import com.kraftadmin.security.SecurityProviderChain
 import com.kraftadmin.utils.telementary.KraftTelemetryEvent
 import com.kraftadmin.utils.telementary.KraftTelemetryService
 import com.kraftadmin.utils.telementary.TelemetryType
@@ -8,8 +9,7 @@ import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.HandlerInterceptor
-import security.AdminSecurityProvider
-import security.SecurityProviderChain
+
 
 @Component
 class SpringGlobalBIInterceptor(

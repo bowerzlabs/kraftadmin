@@ -11,6 +11,7 @@ import com.kraftadmin.config.SpringKraftAdminProperties
 import com.kraftadmin.enums.KraftLogAction
 import com.kraftadmin.utils.logging.KraftAdminAuditor
 import com.kraftadmin.security.AdminPrincipal
+import com.kraftadmin.security.SecurityProviderChain
 import com.kraftadmin.spi.KraftAdminColumn
 import com.kraftadmin.spi.KraftDataProvider
 import com.kraftadmin.ui_descriptors.LookupDescriptor
@@ -31,8 +32,6 @@ import org.hibernate.Hibernate
 import org.hibernate.proxy.HibernateProxy
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.support.TransactionTemplate
-import security.AdminSecurityProvider
-import security.SecurityProviderChain
 import java.lang.reflect.Modifier
 import java.util.*
 import kotlin.jvm.Transient

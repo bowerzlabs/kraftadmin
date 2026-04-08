@@ -1,4 +1,4 @@
-package security
+package com.kraftadmin.security
 
 import kotlin.collections.plusAssign
 
