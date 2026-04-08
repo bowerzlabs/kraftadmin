@@ -1,10 +1,6 @@
 package com.kraftadmin.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.hibernate6.Hibernate6Module
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.kraftadmin.KraftAdmin
 import com.kraftadmin.api.responses.AdminUserDTO
 import com.kraftadmin.controller.KraftAdminSpringbootMetaController
@@ -12,19 +8,15 @@ import com.kraftadmin.discovery.EntityDiscoveryService
 import com.kraftadmin.discovery.ResourceGenerator
 import com.kraftadmin.discovery.SpringBootEnvironmentProvider
 import com.kraftadmin.enums.KraftLogAction
-import com.kraftadmin.persistence.service.KraftSettingsService
-import com.kraftadmin.security.AdminPrincipal
+import com.kraftadmin.json.KraftJsonSerializer
 import com.kraftadmin.security.SecurityProviderChain
-import com.kraftadmin.utils.logging.KraftAdminAuditor
 import com.kraftadmin.spi.KraftEnvironmentProvider
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptorFactory
-import com.kraftadmin.util.JakartaValidationExtractor
-import com.kraftadmin.util.KraftSpringLoggingAuditor
-import com.kraftadmin.util.KraftSpringLoggingService
-import com.kraftadmin.util.SpringBootTelemetryService
+import com.kraftadmin.util.*
 import com.kraftadmin.utils.files.AdminStorageProvider
 import com.kraftadmin.utils.files.CloudinaryAdapter
 import com.kraftadmin.utils.files.LocalFileSystemAdapter
+import com.kraftadmin.utils.logging.KraftAdminAuditor
 import com.kraftadmin.utils.telementary.KraftTelemetryService
 import com.kraftadmin.utils.validation.KraftValidationExtractor
 import org.slf4j.LoggerFactory
@@ -147,16 +139,12 @@ class KraftAdminSpringBootAutoConfiguration(
         return TransactionTemplate(transactionManager)
     }
 
-
-//    @Bean
-//    fun objectMapper(): ObjectMapper {
-//        return ObjectMapper()
-//            .registerModule(KotlinModule.Builder().build())
-//            .registerModule(JavaTimeModule())
-//            // This module tells Jackson: "If you see a Hibernate Proxy, ignore the interceptors"
-//            .registerModule(com.fasterxml.jackson.datatype.hibernate6.Hibernate6Module())
-//            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-//    }
+    @Bean
+    @ConditionalOnMissingBean(KraftJsonSerializer::class)
+    fun kraftJsonSerializer(
+        // Reuse Spring Boot's ObjectMapper if present
+        objectMapper: ObjectMapper
+    ): KraftJsonSerializer = JacksonKraftJsonSerializer(objectMapper)
 
     @Bean
     @ConditionalOnMissingBean(KraftAdminAuditor::class)
