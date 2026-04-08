@@ -114,16 +114,34 @@ publishing {
                 // Java consumers get it automatically, Kotlin consumers use their own
                 // No need to declare kotlin-stdlib/reflect here
                 withXml {
-                    val depsNode = asNode().appendNode("dependencies")
+                    val root = asNode()
+
+                    // Find existing dependencies node or create one if absent
+                    val depsNode = root.children()
+                        .filterIsInstance<groovy.util.Node>()
+                        .firstOrNull { it.name().toString().contains("dependencies") }
+                        ?: root.appendNode("dependencies")
+
                     listOf(
                         Triple("org.jetbrains.kotlin", "kotlin-stdlib", "1.9.24"),
                         Triple("org.jetbrains.kotlin", "kotlin-reflect", "1.9.24")
                     ).forEach { (g, a, v) ->
-                        depsNode.appendNode("dependency").apply {
-                            appendNode("groupId", g)
-                            appendNode("artifactId", a)
-                            appendNode("version", v)
-                            appendNode("scope", "compile")
+                        // Only add if not already present
+                        val alreadyPresent = depsNode.children()
+                            .filterIsInstance<groovy.util.Node>()
+                            .any { dep ->
+                                dep.children()
+                                    .filterIsInstance<groovy.util.Node>()
+                                    .any { it.name().toString().contains("artifactId") && it.text() == a }
+                            }
+
+                        if (!alreadyPresent) {
+                            depsNode.appendNode("dependency").apply {
+                                appendNode("groupId", g)
+                                appendNode("artifactId", a)
+                                appendNode("version", v)
+                                appendNode("scope", "compile")
+                            }
                         }
                     }
                 }
