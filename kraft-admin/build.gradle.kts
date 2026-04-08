@@ -36,26 +36,49 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
+//tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+//    archiveBaseName.set("kraft-admin")
+//    archiveClassifier.set("")
+//
+//    // Relocate Kotlin into a private package so it doesn't clash
+//    // with the consumer app's own Kotlin runtime
+//    relocate("kotlin", "com.bowerzlabs.kraftadmin.internal.kotlin")
+//    relocate("kotlinx", "com.bowerzlabs.kraftadmin.internal.kotlinx")
+//
+//    // Don't bundle Jackson — Spring Boot provides it
+//    exclude("com/fasterxml/**")
+//    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
+//    exclude("META-INF/services/com.fasterxml.jackson.core.JsonFactory")
+//
+//    exclude("META-INF/versions/21/**")
+//    exclude("**/module-info.class")
+//
+//    // Keep service files for your own library's auto-configuration
+//    // but merge carefully — only kraftadmin services should be here
+//    // after excluding Jackson's service registrations above
+//    mergeServiceFiles()
+//}
+
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
 
-    // Relocate Kotlin into a private package so it doesn't clash
-    // with the consumer app's own Kotlin runtime
+    // 1. Relocate the actual Bytecode
     relocate("kotlin", "com.bowerzlabs.kraftadmin.internal.kotlin")
     relocate("kotlinx", "com.bowerzlabs.kraftadmin.internal.kotlinx")
 
-    // Don't bundle Jackson — Spring Boot provides it
-    exclude("com/fasterxml/**")
-    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
-    exclude("META-INF/services/com.fasterxml.jackson.core.JsonFactory")
+    // 2. CRITICAL: Relocate the Metadata/Built-ins
+    // Reflection looks for 'kotlin/kotlin.kotlin_builtins'.
+    // Since we moved 'kotlin' to 'internal.kotlin', we must move these too.
+    relocate("META-INF/kotlin/", "com/bowerzlabs/kraftadmin/internal/kotlin/")
 
+    // 3. Clean up the JAR
     exclude("META-INF/versions/21/**")
     exclude("**/module-info.class")
 
-    // Keep service files for your own library's auto-configuration
-    // but merge carefully — only kraftadmin services should be here
-    // after excluding Jackson's service registrations above
+    // Explicitly kill Jackson auto-registration to protect non-JPA apps
+    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
+
     mergeServiceFiles()
 }
 
