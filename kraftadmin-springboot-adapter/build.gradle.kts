@@ -37,6 +37,12 @@ dependencies {
     compileOnly("com.fasterxml.jackson.module:jackson-module-kotlin")
     compileOnly("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
+    // Hibernate — compileOnly so the adapter can use Hibernate APIs internally
+    // but the consumer's app Hibernate version is used at runtime, not this one
+    compileOnly("org.hibernate.orm:hibernate-core:6.4.4.Final")
+    // Jackson-Hibernate integration — also compileOnly for same reason
+    compileOnly("com.fasterxml.jackson.datatype:jackson-datatype-hibernate6:2.17.0")
+
     // kotlin-reflect must be implementation, not compileOnly
     // because it's needed at runtime by Spring and Jackson
     implementation("org.jetbrains.kotlin:kotlin-reflect")
