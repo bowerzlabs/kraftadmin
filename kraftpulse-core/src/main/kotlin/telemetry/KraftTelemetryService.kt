@@ -1,5 +1,8 @@
 package telementary
 
+import analytics.TelemetryWithQueries
+import model.KraftHttpClientEvent
+import model.KraftTaskEvent
 import model.PulseExceptionEntry
 import telemetry.KraftTelemetryEvent
 
@@ -23,5 +26,14 @@ interface KraftTelemetryService {
     fun flushToCloud()
 
     fun recordException(exceptionData: PulseExceptionEntry)
+
+    fun recordTaskEvent(taskEvent: KraftTaskEvent)
+    fun recordHttpClientEvent(event: model.KraftHttpClientEvent)
+
+    fun getDashboardOverview(limit: Int): List<TelemetryWithQueries>
+
+    fun getComprehensiveDeepDive(traceId: String): Map<String, Any?>
+
+    fun <T> getPageData(table: String, limit: Int, offset: Int, clazz: Class<T>): List<T>
 
 }
