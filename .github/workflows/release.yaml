@@ -1,11 +1,78 @@
+#name: Publish KraftAdmin Release
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#    tags:
+#      - 'v*'
+#
+#jobs:
+#  publish:
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: write
+#
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Set up JDK 17
+#        uses: actions/setup-java@v4
+#        with:
+#          java-version: '17'
+#          distribution: 'temurin'
+#
+#      - name: Stage artifacts
+#        run: ./gradlew :kraft-admin:publishMavenJavaPublicationToStagingDirRepository
+#        env:
+#          GPG_KEY: ${{ secrets.GPG_KEY }}
+#          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+#
+#      - name: Verify signatures
+#        run: |
+#          ASC_COUNT=$(find kraft-admin/build/staging-deploy -name "*.asc" | wc -l)
+#          echo "Signature files found: $ASC_COUNT"
+#          find kraft-admin/build/staging-deploy -type f | sort
+#          [ "$ASC_COUNT" -gt 0 ] || { echo " Signing failed — no .asc files"; exit 1; }
+#
+#      - name: Zip staging directory
+#        run: |
+#          cd kraft-admin/build/staging-deploy
+#          zip -r ../bundle.zip .
+#
+#      - name: Upload to Maven Central Portal
+#        run: |
+#          RESPONSE=$(curl --fail-with-body \
+#            --request POST \
+#            --header "Authorization: Bearer $(echo -n '${{ secrets.SONATYPE_USERNAME }}:${{ secrets.SONATYPE_PASSWORD }}' | base64 -w 0)" \
+#            --form "bundle=@kraft-admin/build/bundle.zip;type=application/octet-stream" \
+#            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC")
+#          echo "Deployment ID: $RESPONSE"
+#
+#      - name: Generate GitHub Release
+#        if: startsWith(github.ref, 'refs/tags/')
+#        uses: softprops/action-gh-release@v2
+#        with:
+#          generate_release_notes: true
+#          files: |
+#            kraft-admin/build/libs/*.jar
+#          prerelease: ${{ contains(github.ref, 'beta') }}
+
+
 name: Publish KraftAdmin Release
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Semantic Version to publish (e.g., 1.0.0-ALPHA, 1.0.0)'
+        required: true
+        default: '1.0.0-ALPHA'
+      is_prerelease:
+        description: 'Is this a pre-release build?'
+        type: boolean
+        required: true
+        default: true
 
 jobs:
   publish:
@@ -21,6 +88,17 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+
+      # Dynamically inject the manual input version into gradle properties before compilation
+      - name: Inject Release Version
+        run: |
+          echo "Target Release Version: ${{ github.event.inputs.release_version }}"
+          if [ -f gradle.properties ]; then
+            sed -i 's/^version=.*/version=${{ github.event.inputs.release_version }}/' gradle.properties
+          else
+            echo "version=${{ github.event.inputs.release_version }}" > gradle.properties
+          fi
+          cat gradle.properties
 
       - name: Stage artifacts
         run: ./gradlew :kraft-admin:publishMavenJavaPublicationToStagingDirRepository
@@ -49,11 +127,12 @@ jobs:
             "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC")
           echo "Deployment ID: $RESPONSE"
 
-      - name: Generate GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Generate GitHub Release Tag & Assets
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ github.event.inputs.release_version }}
+          name: Release v${{ github.event.inputs.release_version }}
           generate_release_notes: true
           files: |
             kraft-admin/build/libs/*.jar
-          prerelease: ${{ contains(github.ref, 'beta') }}
+          prerelease: ${{ github.event.inputs.is_prerelease }}
