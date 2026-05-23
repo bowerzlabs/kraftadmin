@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.10-beta"
+version = "0.1.12-beta"
 
 repositories {
     mavenCentral()
@@ -68,7 +68,7 @@ publishing {
 
             groupId = "com.bowerzlabs"
             artifactId = "kraft-pulse"
-            version = "0.1.0-beta"
+            version = "0.1.12-beta"
         }
     }
 }
