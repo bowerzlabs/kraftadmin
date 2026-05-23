@@ -101,6 +101,7 @@ import controller.KraftSpringMonitoringController
 import interceptor.KraftHttpClientInterceptor
 import interceptor.PulseTelemetryCaptor
 import jakarta.annotation.PreDestroy
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.config.BeanPostProcessor
 import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.AutoConfiguration
@@ -141,14 +142,35 @@ class KraftPulseSpringbootAutoConfiguration {
         }
     }
 
+//    @Bean
+//    fun kraftRestTemplateBeanPostProcessor(captor: PulseTelemetryCaptor): BeanPostProcessor {
+//        return object : BeanPostProcessor {
+//            override fun postProcessAfterInitialization(bean: Any, beanName: String): Any {
+//                // Intercept and instrument container-managed RestTemplate instances exclusively
+//                if (bean is RestTemplate) {
+//                    val interceptors = bean.interceptors
+//                    // Guard condition to prevent duplicate tracking layer injection loops
+//                    if (interceptors.none { it is KraftHttpClientInterceptor }) {
+//                        interceptors.add(KraftHttpClientInterceptor(captor))
+//                        bean.interceptors = interceptors
+//                    }
+//                }
+//                return bean
+//            }
+//        }
+//    }
+
     @Bean
-    fun kraftRestTemplateBeanPostProcessor(captor: PulseTelemetryCaptor): BeanPostProcessor {
+    fun kraftRestTemplateBeanPostProcessor(
+        @Autowired(required = false) captor: PulseTelemetryCaptor?
+    ): BeanPostProcessor {
         return object : BeanPostProcessor {
             override fun postProcessAfterInitialization(bean: Any, beanName: String): Any {
-                // Intercept and instrument container-managed RestTemplate instances exclusively
+                // If the captor bean wasn't created, skip intercepting completely
+                if (captor == null) return bean
+
                 if (bean is RestTemplate) {
                     val interceptors = bean.interceptors
-                    // Guard condition to prevent duplicate tracking layer injection loops
                     if (interceptors.none { it is KraftHttpClientInterceptor }) {
                         interceptors.add(KraftHttpClientInterceptor(captor))
                         bean.interceptors = interceptors
