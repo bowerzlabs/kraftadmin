@@ -3,9 +3,6 @@ plugins {
     id("buildsrc.convention.kotlin-jvm")
 }
 
-group = "com.bowerzlabs"
-version = "0.1.12-beta"
-
 repositories {
     mavenCentral()
 }

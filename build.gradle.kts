@@ -3,8 +3,9 @@ plugins {
     kotlin("jvm")
 }
 
-
 allprojects {
+    group = "com.bowerzlabs"
+    version = properties["version"] ?: error("version not set in gradle.properties")
     repositories {
         mavenCentral()
     }
@@ -22,7 +23,7 @@ kotlin {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions {
-        javaParameters = true // This MUST be true for @ConfigurationProperties on data classes
+        javaParameters = true
     }
 }
 

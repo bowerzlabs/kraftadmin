@@ -30,13 +30,8 @@ jobs:
 
       - name: Inject Release Version
         run: |
-          echo "Target Release Version: ${{ github.event.inputs.release_version }}"
-          if [ -f gradle.properties ]; then
-            sed -i 's/^version=.*/version=${{ github.event.inputs.release_version }}/' gradle.properties
-          else
-            echo "version=${{ github.event.inputs.release_version }}" > gradle.properties
-          fi
-          cat gradle.properties
+          echo "version=${{ github.event.inputs.release_version }}" > gradle.properties
+          echo "Injected version: $(cat gradle.properties)"
 
       - name: Stage kraft-pulse artifacts
         run: ./gradlew :kraft-pulse:publishMavenJavaPublicationToStagingDirRepository

@@ -4,9 +4,6 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.bowerzlabs"
-version = "0.1.12-beta"
-
 repositories {
     mavenCentral()
 }
