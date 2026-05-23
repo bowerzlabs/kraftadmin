@@ -6,19 +6,14 @@ import api.utils.ObjectResponse
 import api.utils.ResourceRow
 import api.utils.RowMetadata
 import com.fasterxml.jackson.annotation.JsonIgnore
-import com.kraftadmin.api.responses.AdminUserDTO
-import com.kraftadmin.config.SpringKraftAdminProperties
-import com.kraftadmin.enums.KraftLogAction
-import com.kraftadmin.utils.logging.KraftAdminAuditor
-import com.kraftadmin.security.AdminPrincipal
-import com.kraftadmin.security.SecurityProviderChain
+import security.AdminUserDTO
+import logging.KraftLogAction
+import security.SecurityProviderChain
 import com.kraftadmin.spi.KraftAdminColumn
 import com.kraftadmin.spi.KraftDataProvider
 import com.kraftadmin.ui_descriptors.LookupDescriptor
 import com.kraftadmin.utils.files.AdminStorageProvider
-import com.kraftadmin.utils.telementary.KraftTelemetryEvent
-import com.kraftadmin.utils.telementary.KraftTelemetryService
-import com.kraftadmin.utils.telementary.TelemetryType
+import config.KraftPulseSpringKraftAdminProperties
 import jakarta.persistence.ElementCollection
 import jakarta.persistence.Embedded
 import jakarta.persistence.EntityManager
@@ -28,10 +23,13 @@ import jakarta.persistence.ManyToMany
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
+import logging.KraftAdminAuditor
+import telementary.KraftTelemetryService
 import org.hibernate.Hibernate
 import org.hibernate.proxy.HibernateProxy
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.support.TransactionTemplate
+import telemetry.KraftPulse
 import java.lang.reflect.Modifier
 import java.util.*
 import kotlin.jvm.Transient
@@ -53,7 +51,7 @@ class JpaDataProvider<T : Any>(
     private val kraftAdminAuditor: KraftAdminAuditor,
 //    private val adminSecurityProvider: AdminSecurityProvider,
     private val securityChain: SecurityProviderChain,
-    private val properties: SpringKraftAdminProperties,
+    private val properties: KraftPulseSpringKraftAdminProperties,
     private val telemetryService: KraftTelemetryService
 ) : KraftDataProvider<T> {
 
@@ -202,6 +200,23 @@ class JpaDataProvider<T : Any>(
 //        }
 //    }
 
+//    override fun fetchById(id: String, columns: List<KraftAdminColumn>): ResourceRow? {
+//        return transactionTemplate.execute { status ->
+//            try {
+//                val entity = entityManager.find(entityClass.java, convertId(id))
+//
+//                if (entity != null) {
+//                    ensureLobsInitialized(entity)
+//                    // Unproxy associations before mapping — same protection as fetchAll
+//                    mapToRow(unproxy(entity) ?: entity)
+//                } else null
+//            } catch (e: Exception) {
+//                logger.error("Error fetching resource by ID: ${e.message}", e)
+//                null
+//            }
+//        }
+//    }
+
     override fun fetchById(id: String, columns: List<KraftAdminColumn>): ResourceRow? {
         return transactionTemplate.execute { status ->
             try {
@@ -209,12 +224,24 @@ class JpaDataProvider<T : Any>(
 
                 if (entity != null) {
                     ensureLobsInitialized(entity)
-                    // Unproxy associations before mapping — same protection as fetchAll
                     mapToRow(unproxy(entity) ?: entity)
                 } else null
             } catch (e: Exception) {
-                logger.error("Error fetching resource by ID: ${e.message}", e)
-                null
+                // SILENTLY RECORD: Capture the exception, trigger, and context
+//                KraftPulse.recordException(e, mapOf(
+//                    "entity" to entityClass.simpleName,
+//                    "id" to id,
+//                    "source" to "fetchById"
+//                ))
+
+                KraftPulse.recordException(e, mapOf(
+                    "entity" to entityClass.simpleName,
+                    "resource_id" to id,
+                    "operation" to "fetchById"
+                ))
+
+                //  RETHROW: Allow the Parent App or our Global Handler to see it
+                throw e
             }
         }
     }
@@ -233,7 +260,7 @@ class JpaDataProvider<T : Any>(
                         action = KraftLogAction.DELETE,
                         resource = entityClass.simpleName ?: "Unknown",
                         id = id,
-                        actor = getCurrentUser()
+                        actor = getCurrentUser()!!
                     )
 
                     entityManager.remove(entity)
@@ -325,7 +352,7 @@ class JpaDataProvider<T : Any>(
                 action = if (isNew) KraftLogAction.CREATE else KraftLogAction.UPDATE,
                 resource = entityClass.simpleName ?: "Unknown",
                 id = finalId,
-                actor = getCurrentUser()
+                actor = getCurrentUser()!!
             )
 
             mapEntityToData(managedEntity)
@@ -960,13 +987,28 @@ class JpaDataProvider<T : Any>(
     }
 
     private fun extractId(entity: Any): Any? {
-        val clean = unproxy(entity)
-        // Use javaClass.fields to ensure we find the ID even on enhanced classes
-        val idField = clean?.javaClass?.declaredFields?.find {
-            it.isAnnotationPresent(Id::class.java) || it.name == "id"
+        val clean = unproxy(entity) ?: return null
+        var currentClass: Class<*>? = clean.javaClass
+
+        while (currentClass != null && currentClass != Any::class.java) {
+            // Find by annotation or name
+            val idField = currentClass.declaredFields.find {
+                it.isAnnotationPresent(Id::class.java) || it.name == "id"
+            }
+
+            if (idField != null) {
+                return try {
+                    idField.isAccessible = true
+                    idField.get(clean)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            // Move up the hierarchy to find ID in BaseEntity
+            currentClass = currentClass.superclass
         }
-        idField?.isAccessible = true
-        return idField?.get(clean)
+
+        return null
     }
 
     /**

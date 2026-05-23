@@ -1,8 +1,9 @@
 package com.kraftadmin.controller
 
-import com.kraftadmin.config.SpringKraftAdminProperties
 import com.kraftadmin.persistence.service.KraftSettingsService
+import config.KraftPulseSpringKraftAdminProperties
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/admin/api/settings")
+@ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true")
 class KraftSettingsController(
     private val settingsService: KraftSettingsService
 ) {
@@ -23,7 +25,7 @@ class KraftSettingsController(
      * Svelte calls this to populate the "Settings" forms.
      */
     @GetMapping
-    fun getSettings(): ResponseEntity<SpringKraftAdminProperties> {
+    fun getSettings(): ResponseEntity<KraftPulseSpringKraftAdminProperties> {
         return ResponseEntity.ok(settingsService.getCurrentProperties())
     }
 
@@ -48,7 +50,7 @@ class KraftSettingsController(
 //    }
 
     @PostMapping
-    fun updateSettings(@RequestBody newSettings: SpringKraftAdminProperties): ResponseEntity<SpringKraftAdminProperties> {
+    fun updateSettings(@RequestBody newSettings: KraftPulseSpringKraftAdminProperties): ResponseEntity<KraftPulseSpringKraftAdminProperties> {
         logger.info("KraftAdmin: Receiving UI settings update for title: ${newSettings.title}")
         val updated = settingsService.updateSettings(newSettings)
         return ResponseEntity.ok(updated)

@@ -6,12 +6,14 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext
 
 @AutoConfiguration
 @ConditionalOnClass(name = ["org.springframework.data.mongodb.core.MongoTemplate"])
+@ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true")
 class KraftAdminMongoAutoConfiguration {
 
     private val logger = LoggerFactory.getLogger(javaClass)

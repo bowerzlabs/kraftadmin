@@ -1,6 +1,7 @@
 package com.kraftadmin.controller
 
 import com.kraftadmin.utils.files.AdminStorageProvider
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -10,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("\${kraftadmin.base-path:/admin}/api/uploads")
+@ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true")
 class KraftAdminSpringbootUploadController(
     private val storageProvider: AdminStorageProvider
 ) {

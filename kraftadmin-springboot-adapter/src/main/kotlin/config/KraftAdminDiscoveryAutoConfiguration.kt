@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 import org.springframework.context.annotation.Bean
 
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.Bean
     KraftAdminJpaAutoConfiguration::class,
     KraftAdminMongoAutoConfiguration::class
 )
+@ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true")
 class KraftAdminDiscoveryAutoConfiguration {
 
     private val logger = LoggerFactory.getLogger(javaClass)

@@ -1,5 +1,6 @@
 package config
 
+import com.kraftadmin.BuildInfo
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.NestedConfigurationProperty
@@ -12,7 +13,7 @@ data class KraftPulseSpringKraftAdminProperties(
     override var basePath: String = "/admin",
     override var title: String = "KraftAdmin",
     override var logoUrl: String? = null,
-    override val version: String = "",
+    override val version: String = BuildInfo.VERSION,
     @NestedConfigurationProperty
     override var theme: SpringThemeProperties = SpringThemeProperties(),
     @NestedConfigurationProperty

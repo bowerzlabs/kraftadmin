@@ -18,8 +18,7 @@ dependencyManagement {
 }
 
 dependencies {
-    api(project(":kraftadmin-core"))
-    api(project(":kraftpulse-springboot-adapter"))
+    api(project(":kraftpulse-core"))
 
     // Spring APIs — consumer provides these
     compileOnly("org.springframework.boot:spring-boot-autoconfigure")
@@ -39,12 +38,15 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.0")
+    implementation("net.ttddyy:datasource-proxy:1.10")
 
     // Hibernate — consumer provides at runtime, you only reference via reflection
     compileOnly("org.hibernate.orm:hibernate-core:6.4.4.Final")
 
     // Hibernate-Jackson bridge — consumer-provided, never bundle or relocate
     compileOnly("com.fasterxml.jackson.datatype:jackson-datatype-hibernate6:2.17.0")
+
+    compileOnly("org.springframework.boot:spring-boot-starter-aop")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
@@ -58,10 +60,4 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
-}
-
-tasks.named<ProcessResources>("processResources") {
-    from(project(":kraftadmin-ui").layout.buildDirectory.dir("dist")) {
-        into("static")
-    }
 }

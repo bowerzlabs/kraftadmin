@@ -5,6 +5,7 @@ import com.kraftadmin.discovery.JpaEntityDiscoverer
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Bean
 //@ConditionalOnClass(name = ["jakarta.persistence.EntityManagerFactory"])
 @ConditionalOnClass(jakarta.persistence.EntityManagerFactory::class)
 //@ConditionalOnBean(jakarta.persistence.EntityManagerFactory::class)
+@ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true")
 class KraftAdminJpaAutoConfiguration {
 
     private val logger = LoggerFactory.getLogger(javaClass)

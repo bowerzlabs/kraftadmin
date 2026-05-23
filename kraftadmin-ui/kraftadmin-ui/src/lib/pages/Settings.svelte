@@ -1,48 +1,54 @@
-
 <script lang="ts">
   import { onMount } from 'svelte';
   import { adminSettings } from '../stores/settings';
   import { fade, fly } from 'svelte/transition';
+  import { kraftFetch } from '../../api'; // Use your unified fetcher
 
   // State management
   let activeTab = 'lib-config';
   let editableSettings: any = null;
-  let loading = true;
+  let saving = false;
 
-  // Tabs Definition
+  // Tabs Definition (Same as before)
   const tabs = [
     { id: 'lib-config', label: 'Library Config', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
     { id: 'site', label: 'Site Settings', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9' },
     { id: 'integrations', label: 'Integrations', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }
   ];
 
-  onMount(async () => {
-    loading = true;
-    const res = await fetch('/admin/api/settings');
-    if (res.ok) {
-        const data = await res.json();
-        adminSettings.set(data);
-        editableSettings = JSON.parse(JSON.stringify(data));
-    }
-    loading = false;
-  });
-
-  // Keep editableSettings reactive to store fallback
-  $: if (!editableSettings && $adminSettings) {
+  // Initialize local editable state from the Global Store
+  function syncFromStore() {
+    if ($adminSettings) {
       editableSettings = JSON.parse(JSON.stringify($adminSettings));
+    }
+  }
+
+  onMount(syncFromStore);
+
+  // If the store updates (e.g. background sync), refresh the editable state
+  // only if the user hasn't started editing yet (to avoid overwriting user input)
+  $: if ($adminSettings && !editableSettings) {
+    syncFromStore();
   }
 
   async function save() {
-    const res = await fetch('/admin/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editableSettings)
-    });
-    
-    if (res.ok) {
-      const updated = await res.json();
-      adminSettings.set(updated);
-      alert("Configuration Synced."); 
+    saving = true;
+    try {
+      const res = await kraftFetch('/admin/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editableSettings)
+      });
+      
+      if (res.ok) {
+        const updated = await res.json();
+        adminSettings.set(updated); // Update global store
+        alert("Sovereign Configuration Synced."); 
+      }
+    } catch (e) {
+      console.error("Save failed", e);
+    } finally {
+      saving = false;
     }
   }
 </script>
@@ -244,3 +250,4 @@
 
   </main>
 </div>
+

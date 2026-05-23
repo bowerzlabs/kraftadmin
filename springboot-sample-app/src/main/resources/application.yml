@@ -13,22 +13,8 @@ spring:
       ddl-auto: update
     show-sql: true
 
-# If your library has a custom prefix for activation:
-#kraftadmin:
-#  enabled: true
-#  base-package: com.kraftadmin.sample
-
-#kraftadmin:
-#  base-path: /admin
-#  title: KraftAdmin Dashboard
-##  storage:
-##    upload-dir: /var/www/data/logos
-##    public-url-prefix: /static/assets
-#  security:
-#    cookie-name: MY_APP_AUTH
-#    session-expiry-minutes: 120
-
-kraftadmin:
+kraftpulse:
+  enabled: true
   base-path: /admin
   title: "KraftAdmin Dashboard"
   logo-url: "https://your-assets.com/logo.png"

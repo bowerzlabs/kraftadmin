@@ -1,15 +1,12 @@
 package com.kraftadmin.discovery
 
-import ch.qos.logback.core.pattern.FormatInfo
 import com.kraftadmin.annotations.KraftAdminCustomAction
 import com.kraftadmin.annotations.KraftAdminField
 import com.kraftadmin.annotations.KraftAdminLookup
 import com.kraftadmin.config.JpaDataProviderFactory
-import com.kraftadmin.config.SpringKraftAdminProperties
 import com.kraftadmin.enums.FormInputType
-import com.kraftadmin.utils.logging.KraftAdminAuditor
 import com.kraftadmin.persistence.jpa.provider.JpaDataProvider
-import com.kraftadmin.security.SecurityProviderChain
+import security.SecurityProviderChain
 import com.kraftadmin.spi.AbstractResource
 import com.kraftadmin.spi.KraftAdminResource
 import com.kraftadmin.spi.SelectOption
@@ -17,10 +14,11 @@ import com.kraftadmin.ui_descriptors.ColumnDescriptor
 import com.kraftadmin.ui_descriptors.KraftActionDescriptor
 import com.kraftadmin.ui_descriptors.LookupDescriptor
 import com.kraftadmin.util.JakartaValidationExtractor
-import com.kraftadmin.util.SpringBootTelemetryService
 import com.kraftadmin.utils.files.AdminStorageProvider
-import com.kraftadmin.utils.telementary.KraftTelemetryService
+import config.KraftPulseSpringKraftAdminProperties
 import jakarta.persistence.*
+import logging.KraftAdminAuditor
+import telementary.KraftTelemetryService
 import org.springframework.context.ApplicationContext
 import org.springframework.transaction.support.TransactionTemplate
 import java.lang.reflect.Modifier
@@ -81,7 +79,7 @@ object ResourceGenerator {
     fun <T : Any> generate(
         entityClass: Class<T>,
         context: ApplicationContext,
-        properties: SpringKraftAdminProperties
+        properties: KraftPulseSpringKraftAdminProperties
     ): KraftAdminResource<T> {
         val kClass = entityClass.kotlin
         println("\n\n========== GENERATING RESOURCE FOR: ${kClass.simpleName} ==========")
@@ -93,27 +91,32 @@ object ResourceGenerator {
         ) {
             init {
                 kClass.memberProperties.forEach { prop ->
-                    println("\n--- PROP: ${kClass.simpleName}.${prop.name} ---")
-
-                    // === STEP 1: Resolve javaField ===
                     val javaField = prop.javaField
-                    println("  javaField: ${javaField?.name ?: "NULL"}")
-                    if (javaField == null) {
-                        println("  SKIP: javaField is null")
+                    if (javaField == null){
                         return@forEach
                     }
 
-                    // === STEP 2: Dump ALL annotations ===
-                    println("  [Java field annotations]:")
-                    javaField.annotations.forEach { println("    - $it") }
-                    println("  [Kotlin prop.annotations]:")
-                    prop.annotations.forEach { println("    - $it") }
-                    println("  [Kotlin getter annotations]:")
-                    prop.javaGetter?.annotations?.forEach { println("    - $it") }
+//                    println("\n--- PROP: ${kClass.simpleName}.${prop.name} ---")
+//
+//                    // === STEP 1: Resolve javaField ===
+//                    val javaField = prop.javaField
+//                    println("  javaField: ${javaField?.name ?: "NULL"}")
+//                    if (javaField == null) {
+//                        println("  SKIP: javaField is null")
+//                        return@forEach
+//                    }
+//
+//                    // === STEP 2: Dump ALL annotations ===
+//                    println("  [Java field annotations]:")
+//                    javaField.annotations.forEach { println("    - $it") }
+//                    println("  [Kotlin prop.annotations]:")
+//                    prop.annotations.forEach { println("    - $it") }
+//                    println("  [Kotlin getter annotations]:")
+//                    prop.javaGetter?.annotations?.forEach { println("    - $it") }
 
                     // === STEP 3: Skip transient/static ===
                     if (javaField.isAnnotationPresent(Transient::class.java) || Modifier.isStatic(javaField.modifiers)) {
-                        println("  SKIP: Transient or Static")
+//                        println("  SKIP: Transient or Static")
                         return@forEach
                     }
 
@@ -122,13 +125,13 @@ object ResourceGenerator {
                     val isManyToOne = isRelationAnnotationPresent(javaField, prop, ManyToOne::class)
                     val isManyToMany = isRelationAnnotationPresent(javaField, prop, ManyToMany::class)
                     val isOneToMany = isRelationAnnotationPresent(javaField, prop, OneToMany::class)
-                    println("  isOneToOne=$isOneToOne isManyToOne=$isManyToOne isManyToMany=$isManyToMany isOneToMany=$isOneToMany")
+//                    println("  isOneToOne=$isOneToOne isManyToOne=$isManyToOne isManyToMany=$isManyToMany isOneToMany=$isOneToMany")
 
                     // === STEP 5: Resolve target entity class ===
                     val targetEntityClass: KClass<*>? = when {
                         isManyToOne || isOneToOne -> {
                             val resolved = prop.returnType.classifier as? KClass<*>
-                            println("  targetEntityClass (xToOne via returnType.classifier): $resolved")
+//                            println("  targetEntityClass (xToOne via returnType.classifier): $resolved")
                             resolved
                         }
                         isManyToMany || isOneToMany -> {
@@ -137,39 +140,40 @@ object ResourceGenerator {
                                     val paramType = javaField.genericType as? java.lang.reflect.ParameterizedType
                                     (paramType?.actualTypeArguments?.firstOrNull() as? Class<*>)?.kotlin
                                 }
-                            println("  targetEntityClass (xToMany via generic): $resolved")
+//                            println("  targetEntityClass (xToMany via generic): $resolved")
                             resolved
                         }
                         else -> {
-                            println("  targetEntityClass: null (not a relation)")
+//                            println("  targetEntityClass: null (not a relation)")
                             null
                         }
                     }
 
                     // === STEP 6: Resolve type and default ===
                     val (colType, defaultVal) = resolveTypeAndDefault(prop, isOneToOne, isManyToOne, isManyToMany, isOneToMany)
-                    println("  colType=$colType defaultVal=$defaultVal")
+//                    println("  colType=$colType defaultVal=$defaultVal")
 
                     // === STEP 7: Resolve lookup config ===
                     val lookupConfig = targetEntityClass?.let { tkc ->
-                        println("  [Lookup resolution for ${prop.name} -> ${tkc.simpleName}]")
+//                        println("  [Lookup resolution for ${prop.name} -> ${tkc.simpleName}]")
 
                         val fieldAnn = resolveAnnotation(javaField, prop, KraftAdminLookup::class)
-                        println("  fieldAnn (KraftAdminLookup): $fieldAnn")
+//                        println("  fieldAnn (KraftAdminLookup): $fieldAnn")
 
                         val finalAnn = fieldAnn
-                            ?: tkc.java.getAnnotation(KraftAdminLookup::class.java).also {
-                                println("  targetClassAnn fallback: $it")
-                            }
+                            ?: tkc.java.getAnnotation(KraftAdminLookup::class.java)
+//                                .also {
+//                                println("  targetClassAnn fallback: $it")
+//                            }
 
                         val searchField = when {
                             finalAnn != null && finalAnn.displayField.isNotBlank() -> {
-                                println("  searchField from annotation: ${finalAnn.displayField}")
+//                                println("  searchField from annotation: ${finalAnn.displayField}")
                                 finalAnn.displayField
                             }
                             else -> {
                                 val discovered = discoverDefaultSearchField(tkc)
-                                println("  searchField from discovery: $discovered")
+//                                println("  searchField from discovery: $discovered")
                                 discovered
                             }
                         }
@@ -177,7 +181,7 @@ object ResourceGenerator {
                         val lookupKey = if (finalAnn != null && finalAnn.lookupKey.isNotBlank())
                             finalAnn.lookupKey else "id"
 
-                        println("  FINAL LookupDescriptor(targetEntity=${tkc.simpleName}, searchField=$searchField, lookupKey=$lookupKey)")
+//                        println("  FINAL LookupDescriptor(targetEntity=${tkc.simpleName}, searchField=$searchField, lookupKey=$lookupKey)")
                         LookupDescriptor(
                             targetEntity = tkc.simpleName ?: "Unknown",
                             searchField = searchField,

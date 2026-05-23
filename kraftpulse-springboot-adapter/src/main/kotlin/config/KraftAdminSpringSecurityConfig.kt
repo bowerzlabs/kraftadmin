@@ -1,24 +1,28 @@
-package com.kraftadmin.config
+package config
 
-import com.kraftadmin.security.AdminSecurityConfig
-import com.kraftadmin.security.SpringSecurityAdapter
-import com.kraftadmin.security.AdminSecurityFilter
-import com.kraftadmin.security.AdminSecurityProvider
-import com.kraftadmin.security.AdminSessionStore
-import com.kraftadmin.security.BuiltinBasicAuthProvider
-import com.kraftadmin.security.SecurityProviderChain
-import com.kraftadmin.security.SessionConfig
-import com.kraftadmin.security.SessionSecurityProvider
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
+import security.AdminSecurityConfig
+import security.AdminSecurityFilter
+import security.AdminSecurityProvider
+import security.AdminSessionStore
+import security.BuiltinBasicAuthProvider
+import security.SecurityProviderChain
+import security.SessionConfig
+import security.SessionSecurityProvider
+import security.SpringSecurityAdapter
 
 @AutoConfiguration
-@EnableConfigurationProperties(SpringKraftAdminProperties::class)
-class KraftAdminSpringSecurityConfig {
+@ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true")
+class KraftAdminSpringSecurityConfig(
+    private val properties: KraftPulseSpringKraftAdminProperties,
+    private val env: org.springframework.core.env.Environment,
+) {
 
     private val log = LoggerFactory.getLogger(KraftAdminSpringSecurityConfig::class.java)
 
@@ -37,8 +41,9 @@ class KraftAdminSpringSecurityConfig {
     @Bean
     fun sessionConfig(): SessionConfig = SessionConfig()
 
+
     @Bean
-    fun builtinBasicAuthProvider(properties: SpringKraftAdminProperties): BuiltinBasicAuthProvider {
+    fun builtinBasicAuthProvider(): BuiltinBasicAuthProvider {
         val basicAuthConfig = properties.security.basicAuth
         return BuiltinBasicAuthProvider(basicAuthConfig)
     }
@@ -66,7 +71,6 @@ class KraftAdminSpringSecurityConfig {
 
         return SecurityProviderChain(providers.sortedBy { it.priority })
     }
-
 
 //    @Bean
 //    fun adminSecurityFilter(

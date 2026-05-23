@@ -7,13 +7,13 @@ import com.kraftadmin.api.responses.DashboardStat
 import com.kraftadmin.api.responses.KraftDashboardResponse
 import com.kraftadmin.api.responses.LibraryFeature
 import com.kraftadmin.api.responses.SystemStatus
-import com.kraftadmin.config.SpringKraftAdminProperties
-import com.kraftadmin.security.SecurityProviderChain
+import security.SecurityProviderChain
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptor
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptorFactory
-import com.kraftadmin.utils.custom_actions.KraftActionHandler
 import com.kraftadmin.utils.custom_actions.KraftActionResponse
+import config.KraftPulseSpringKraftAdminProperties
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.ApplicationContext
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -26,16 +26,16 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.findAnnotations
 
 
 @RestController
 @RequestMapping("\${kraftadmin.base-path:/admin}/api")
+@ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true")
 class KraftAdminSpringbootMetaController(
     private val descriptorFactory: KraftAdminDescriptorFactory,
     private val chain: SecurityProviderChain,
-    private val properties: SpringKraftAdminProperties,
+    private val properties: KraftPulseSpringKraftAdminProperties,
     private val applicationContext: ApplicationContext
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)

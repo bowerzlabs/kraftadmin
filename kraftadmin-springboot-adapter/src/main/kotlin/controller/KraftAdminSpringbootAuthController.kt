@@ -1,16 +1,16 @@
 package com.kraftadmin.controller
 
 
-import com.kraftadmin.security.AdminRequest
-import com.kraftadmin.security.AdminSessionStore
-import com.kraftadmin.security.NoFrameworkSecurityCondition
-import com.kraftadmin.security.SecurityProviderChain
-import com.kraftadmin.security.SessionConfig
+import security.AdminRequest
+import security.AdminSessionStore
+import security.NoFrameworkSecurityCondition
+import security.SecurityProviderChain
+import security.SessionConfig
 import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Conditional
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -39,8 +39,9 @@ import java.util.Base64
  */
 @RestController
 @RequestMapping("\${kraftadmin.base-path:/admin}/api/auth")
-//@ConditionalOnExpression("!T(com.kraftadmin.config.KraftAdminSpringSecurityConfig).isSpringSecurityActive()")
+//@ConditionalOnExpression("!T(config.KraftAdminSpringSecurityConfig).isSpringSecurityActive()")
 @Conditional(NoFrameworkSecurityCondition::class)
+@ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true")
 class KraftAdminSpringbootAuthController(
     private val chain: SecurityProviderChain,
     private val sessionStore: AdminSessionStore,
@@ -64,6 +65,7 @@ class KraftAdminSpringbootAuthController(
         )
 
         val principal = chain.authenticate(adminRequest)
+        logger.info("principal $principal")
 
         if (principal == null) {
             logger.warn("Failed login attempt for username '{}'", credentials.username)

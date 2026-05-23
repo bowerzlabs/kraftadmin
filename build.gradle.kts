@@ -20,3 +20,9 @@ kotlin {
     jvmToolchain(17)
 }
 
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        javaParameters = true // This MUST be true for @ConfigurationProperties on data classes
+    }
+}
+

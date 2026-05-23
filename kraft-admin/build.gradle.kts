@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
     `java-library`
     `maven-publish`
@@ -7,7 +9,7 @@ plugins {
 }
 
 group = "com.bowerzlabs"
-version = "0.1.9-beta"
+version = "0.1.10-beta"
 
 java {
     withSourcesJar()
@@ -23,7 +25,8 @@ kotlin {
 }
 
 dependencies {
-    api(project(":kraft-core"))
+    api(project(":kraftadmin-core"))
+    api(project(":kraft-pulse"))
     api(project(":kraftadmin-springboot-adapter"))
     implementation(project(":kraftadmin-ui"))
 
@@ -36,43 +39,28 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-//tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
-//    archiveBaseName.set("kraft-admin")
-//    archiveClassifier.set("")
-//
-//    // Relocate Kotlin into a private package so it doesn't clash
-//    // with the consumer app's own Kotlin runtime
-//    relocate("kotlin", "com.bowerzlabs.kraftadmin.internal.kotlin")
-//    relocate("kotlinx", "com.bowerzlabs.kraftadmin.internal.kotlinx")
-//
-//    // Don't bundle Jackson — Spring Boot provides it
-//    exclude("com/fasterxml/**")
-//    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
-//    exclude("META-INF/services/com.fasterxml.jackson.core.JsonFactory")
-//
-//    exclude("META-INF/versions/21/**")
-//    exclude("**/module-info.class")
-//
-//    // Keep service files for your own library's auto-configuration
-//    // but merge carefully — only kraftadmin services should be here
-//    // after excluding Jackson's service registrations above
-//    mergeServiceFiles()
-//}
-
-tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+tasks.named<ShadowJar>("shadowJar") {
     archiveBaseName.set("kraft-admin")
     archiveClassifier.set("")
 
-    // ✅ Exclude — declared as api deps in POM instead, NOT bundled
+    dependsOn(":kraft-pulse:shadowJar")
+
+    // Relocate Jackson — hides it from consumer's classpath
+    relocate("com.fasterxml.jackson", "com.kraftadmin.shaded.jackson") {
+        // Never relocate hibernate bridge — consumer owns it at com.fasterxml.*
+        exclude("com.fasterxml.jackson.datatype.hibernate6.*")
+    }
+
+    // Kotlin — consumer provides, don't bundle
     exclude("kotlin/**")
     exclude("kotlinx/**")
-
-    exclude("com/fasterxml/**")
-    exclude("META-INF/services/com.fasterxml.jackson.databind.Module")
     exclude("META-INF/versions/21/**")
     exclude("**/module-info.class")
 
-    // No relocate() calls at all
+    // Spring — consumer provides, don't bundle
+    exclude("org/springframework/**")
+    exclude("jakarta/**")
+
     mergeServiceFiles()
 }
 
@@ -124,7 +112,7 @@ publishing {
 
                     listOf(
                         Triple("org.jetbrains.kotlin", "kotlin-stdlib", "1.9.24"),
-                        Triple("org.jetbrains.kotlin", "kotlin-reflect", "1.9.24")
+                        Triple("org.jetbrains.kotlin", "kotlin-reflect", "1.9.24"),
                     ).forEach { (g, a, v) ->
                         // Only add if not already present
                         val alreadyPresent = depsNode.children()
