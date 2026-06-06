@@ -23,7 +23,7 @@ At its core, KraftAdmin shifts the burden of building internal tools from manual
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("com.bowerzlabs:kraft-admin:0.1.9-beta")
+    implementation("com.bowerzlabs:kraft-admin:0.1.14-beta")
 }
 ```
 
@@ -32,7 +32,7 @@ dependencies {
 ```groovy
 // build.gradle
 dependencies {
-implementation 'com.bowerzlabs:kraft-admin:0.1.9-beta'
+implementation 'com.bowerzlabs:kraft-admin:0.1.14-beta'
 }
 ```
 
@@ -42,7 +42,7 @@ implementation 'com.bowerzlabs:kraft-admin:0.1.9-beta'
 <dependency>
     <groupId>com.bowerzlabs</groupId>
     <artifactId>kraft-admin</artifactId>
-    <version>0.1.9-beta</version>
+    <version>0.1.14-beta</version>
 </dependency>
 ```
 ---
