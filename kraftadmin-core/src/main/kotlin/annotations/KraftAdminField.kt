@@ -38,4 +38,6 @@ annotation class KraftAdminField(
     val placeholder: String = "",
     val readonly: Boolean = false,
     val displayField: Boolean = false,
+
+    val wysiwygConfig: RichTextConfig = RichTextConfig()
 )
