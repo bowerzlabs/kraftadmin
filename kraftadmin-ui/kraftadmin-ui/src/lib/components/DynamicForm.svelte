@@ -1,10 +1,11 @@
 <script lang="ts">
   import EmbeddedObjectInput from '../components/EmbeddedObjectInput.svelte';
-
+  import WYSIWYG from './WYSIWYG.svelte';
+ 
   export let columns: any[] = [];
   export let onSubmit: (data: any) => void;
   export let resourceName: string = "";
-  export let submitLabel: string = "";
+  export let submitLabel: string = "Create ";
   export let initialData: any = {};
   export let externalErrors: Record<string, string[]> = {};
 
@@ -267,54 +268,7 @@
 
   function clearFile(fieldName: string) { formData[fieldName] = null; }
 
-    function wysiwyg(node: HTMLElement, options: { value: string; config?: any }) {
-      let quillInstance: any;
-
-      // Dynamic import handles compilation and SSR context safely
-      import('quill').then((module) => {
-        const Quill = module.default;
-
-        // Default fallback layout structures
-        const defaultToolbar = [
-          ['bold', 'italic', 'underline'],
-          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-          ['link', 'clean']
-        ];
-
-        // Compute annotation configuration switches directly
-        const toolbarSelection = options.config?.toolbar === 'minimal'
-          ? [['bold', 'italic'], ['clean']]
-          : (options.config?.toolbar || defaultToolbar);
-
-        quillInstance = new Quill(node, {
-          modules: { toolbar: toolbarSelection },
-          theme: 'snow',
-          placeholder: options.config?.placeholder || 'Write rich text content here...'
-        });
-
-        // Set baseline state
-        quillInstance.root.innerHTML = options.value || '';
-
-        // Intercept inputs and pass up to the formData stream
-        quillInstance.on('text-change', () => {
-          node.dispatchEvent(new CustomEvent('textChange', {
-            detail: quillInstance.root.innerHTML
-          }));
-        });
-      });
-
-      return {
-        update(newOptions: { value: string }) {
-          if (quillInstance && newOptions.value !== quillInstance.root.innerHTML) {
-            quillInstance.root.innerHTML = newOptions.value || '';
-          }
-        },
-        destroy() {
-          node.innerHTML = '';
-        }
-      };
-    }
-
+ 
   const triggerSubmit = () => onSubmit(formData);
 </script>
 
@@ -495,17 +449,13 @@
                             class:input-error={externalErrors[col.name]}
                             placeholder={col.type === 'JSON' ? '{"key": "value"}' : 'Write here...'}></textarea>
 
-              {:else if col.type === 'WYSIWYG'}
-                          <div class="wysiwyg-editor-wrapper" class:wysiwyg-error={externalErrors[col.name]}>
-                            <div
-                              use:wysiwyg={{
-                                value: formData[col.name],
-                                config: col.editorOptions
-                              }}
-                              on:textChange={(e) => formData[col.name] = e.detail}
-                              class="wysiwyg-editor-surface"
-                            ></div>
-                          </div>
+             
+                          {:else if col.type === 'WYSIWYG'}
+  <WYSIWYG 
+    value={formData[col.name]} 
+    config={col.wysiwygConfig} 
+    onChange={(html) => formData[col.name] = html} 
+  />
 
               {:else if col.type === 'OBJECT'}
 
@@ -597,33 +547,5 @@
   .animate-in { animation: fadeIn 0.2s ease-out forwards; }
 
   /* Style overrides for custom rich text input surfaces */
-    .wysiwyg-editor-wrapper {
-      border: 1px solid #27272a;
-      border-radius: 0.5rem;
-      background-color: #09090b;
-      overflow: hidden;
-    }
-    .wysiwyg-editor-wrapper :global(.ql-toolbar.ql-snow) {
-      background-color: #18181b;
-      border: none;
-      border-bottom: 1px solid #27272a;
-      padding: 0.5rem;
-    }
-    .wysiwyg-editor-wrapper :global(.ql-container.ql-snow) {
-      border: none;
-      font-family: ui-sans-serif, system-ui, sans-serif;
-      font-size: 0.875rem;
-      color: #fafafa;
-      min-h: 220px;
-    }
-    .wysiwyg-editor-wrapper :global(.ql-editor.ql-blank::before) {
-      color: #71717a;
-      font-style: normal;
-    }
 
-    /* Input error states tracking */
-    .wysiwyg-editor-wrapper.wysiwyg-error {
-      border-color: #ef4444 !important;
-      background-color: rgba(239, 68, 68, 0.05) !important;
-    }
 </style>
