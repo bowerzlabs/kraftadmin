@@ -10,7 +10,8 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.boot:spring-boot-dependencies:3.3.1")
+//        mavenBom("org.springframework.boot:spring-boot-dependencies:3.3.1")
+        mavenBom("org.springframework.boot:spring-boot-dependencies:3.2.0")
     }
 }
 
@@ -30,7 +31,6 @@ dependencies {
     compileOnly("org.springframework.boot:spring-boot-starter-validation")
     compileOnly("org.springframework.boot:spring-boot-starter-security")
 
-    // Jackson — implementation, this is YOUR internal detail
     // Shadow JAR will relocate these so they never conflict with consumer's Jackson
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
@@ -44,6 +44,12 @@ dependencies {
     compileOnly("com.fasterxml.jackson.datatype:jackson-datatype-hibernate6:2.17.0")
 
     compileOnly("org.springframework.boot:spring-boot-starter-aop")
+
+    // Micrometer Observation
+    compileOnly("io.micrometer:micrometer-observation")
+
+    // Spring Boot Actuator
+    compileOnly("org.springframework.boot:spring-boot-starter-actuator")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
