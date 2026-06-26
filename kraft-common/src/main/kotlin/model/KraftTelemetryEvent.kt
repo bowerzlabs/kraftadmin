@@ -1,13 +1,9 @@
-package telemetry
+package com.kraftadmin.model
 
 import security.AdminUserDTO
 import java.util.UUID
 
-// ---------------------------------------------------------------------------
 // Canonical Telemetry Event
-// Merges KraftTelemetryEvent, KraftTelemetryEvent1, KraftTelemetryEvent2
-// ---------------------------------------------------------------------------
-
 data class KraftTelemetryEvent(
     val id: String = UUID.randomUUID().toString(),
     val timestamp: Long = System.currentTimeMillis(),
@@ -55,14 +51,6 @@ enum class EventStatus {
     TIMEOUT,
     CANCELLED
 }
-
-//data class EventImpact(
-//    val rowsAffected: Int = 0,
-//    val bytesProcessed: Long = 0,
-//    val isCacheHit: Boolean = false,
-//    val queryCount: Int = 1,           // Useful for detecting N+1
-//    val estimatedCostUsd: Double? = null
-//)
 
 data class EventImpact(
     val rowsAffected: Int = 0,

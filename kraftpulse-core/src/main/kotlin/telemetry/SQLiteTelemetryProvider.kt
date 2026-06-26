@@ -1,11 +1,16 @@
 package telemetry
 
 import analytics.*
+import com.kraftadmin.model.ClickHouseTelemetryBatch
+import com.kraftadmin.model.KraftTelemetryEvent
 import json.KraftJsonSerializer
 import model.KraftHttpClientEvent
 import model.KraftTaskEvent
 import model.PulseExceptionEntry
 import model.QueryEvent
+import org.flywaydb.core.Flyway
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
@@ -21,6 +26,12 @@ class SQLiteTelemetryProvider(
     private val appName: String = "default-app",
     val serializer: KraftJsonSerializer
 ) {
+    private val logger: Logger = LoggerFactory.getLogger(SQLiteTelemetryProvider::class.java)
+
+    // Make connection nullable or lateinit
+    private lateinit var connection: Connection
+
+    // 1. Define the property first so it is ready for the init block
     private val dbPath: String = run {
         val home = System.getProperty("user.home")
         val safeAppName = appName.replace(Regex("[^a-zA-Z0-9.-]"), "_")
@@ -29,137 +40,109 @@ class SQLiteTelemetryProvider(
         dir.absolutePath + File.separator + "telemetry.db"
     }
 
-    var onEventPersisted: ((KraftTelemetryEvent) -> Unit)? = null
-    val connection: Connection = DriverManager.getConnection("jdbc:sqlite:$dbPath?journal_mode=WAL")
-
     init {
+        // 3. Now dbPath is guaranteed to be initialized
+        migrateSchema(dbPath)
+        this.connection = DriverManager.getConnection("jdbc:sqlite:$dbPath?journal_mode=WAL")
+    }
+
+    private fun migrateSchema(path: String) {
+        val flyway = Flyway.configure()
+            .dataSource("jdbc:sqlite:$path", null, null)
+            .locations("classpath:db/migration")
+            .baselineOnMigrate(true)
+            .load()
+
         try {
-            connection.createStatement().use { statement ->
-                statement.execute("""
-                    CREATE TABLE IF NOT EXISTS kraft_telemetry (
-                        id TEXT PRIMARY KEY,
-                        trace_id TEXT,
-                        type TEXT,
-                        resource TEXT,
-                        action TEXT,
-                        duration_ms INTEGER,
-                        status INTEGER,
-                        actor TEXT,
-                        ip_address TEXT,
-                        user_agent TEXT,
-                        referer TEXT,
-                        created_at INTEGER,
-                        payload TEXT,
-                        synced INTEGER DEFAULT 0
-                    )
-                """)
-
-                statement.execute("""
-                    CREATE TABLE IF NOT EXISTS kraft_query_events (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        trace_id TEXT NOT NULL,
-                        sql TEXT,
-                        query_type TEXT,
-                        entity_name TEXT,
-                        table_name TEXT,
-                        duration_ms INTEGER,
-                        rows_returned INTEGER,
-                        rows_affected INTEGER,
-                        is_slow BOOLEAN,
-                        is_n_plus_one BOOLEAN,
-                        data_source TEXT,
-                        created_at INTEGER,
-                        payload TEXT,
-                        synced INTEGER DEFAULT 0
-                    )
-                """)
-
-                statement.execute("""
-                    CREATE TABLE IF NOT EXISTS kraft_exceptions (
-                        id TEXT PRIMARY KEY,
-                        trace_id TEXT NOT NULL,
-                        exception_class TEXT,
-                        message TEXT,
-                        stack_trace TEXT,
-                        path TEXT,
-                        method TEXT,
-                        status_code INTEGER,
-                        created_at INTEGER,
-                        payload TEXT,
-                        synced INTEGER DEFAULT 0
-                    )
-                """)
-
-                statement.execute("""
-                    CREATE TABLE IF NOT EXISTS kraft_tasks (
-                        id TEXT PRIMARY KEY,
-                        trace_id TEXT NOT NULL,
-                        name TEXT,
-                        type TEXT,
-                        status TEXT,
-                        duration_ms INTEGER,
-                        error_message TEXT,
-                        created_at INTEGER,
-                        payload TEXT,
-                        synced INTEGER DEFAULT 0
-                    )
-                """)
-
-                statement.execute("""
-                    CREATE TABLE IF NOT EXISTS kraft_http_client_events (
-                        id TEXT PRIMARY KEY,
-                        trace_id TEXT NOT NULL,
-                        url TEXT,
-                        method TEXT,
-                        status_code INTEGER,
-                        duration_ms INTEGER,
-                        created_at INTEGER,
-                        payload TEXT,
-                        synced INTEGER DEFAULT 0
-                    )
-                """)
-
-                statement.execute("CREATE INDEX IF NOT EXISTS idx_http_client_trace ON kraft_http_client_events(trace_id)")
-                statement.execute("CREATE INDEX IF NOT EXISTS idx_http_client_created ON kraft_http_client_events(created_at, synced)")
-                statement.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_trace ON kraft_telemetry(trace_id)")
-                statement.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_sync ON kraft_telemetry(synced, created_at)")
-                statement.execute("CREATE INDEX IF NOT EXISTS idx_query_trace ON kraft_query_events(trace_id)")
-                statement.execute("CREATE INDEX IF NOT EXISTS idx_query_sync ON kraft_query_events(synced, created_at)")
-                statement.execute("CREATE INDEX IF NOT EXISTS idx_exc_trace ON kraft_exceptions(trace_id)")
-                statement.execute("CREATE INDEX IF NOT EXISTS idx_task_trace ON kraft_tasks(trace_id)")
-
-                println("✅ KraftPulse: Non-Destructive State Outbox Schema Synchronized.")
-            }
+            flyway.migrate()
+            logger.info("✅ KraftPulse: Telemetry schema migrated successfully.")
         } catch (e: Exception) {
-            System.err.println("❌ KraftPulse: Schema Error: ${e.message}")
+            logger.error("❌ KraftPulse: Schema migration failed", e)
+            throw e
         }
     }
 
-    // --- SAVE OPERATIONS ---
+    var onEventPersisted: ((KraftTelemetryEvent) -> Unit)? = null
 
     fun save(event: KraftTelemetryEvent) {
-        val sql = "INSERT OR IGNORE INTO kraft_telemetry (id, trace_id, type, resource, action, duration_ms, status, actor, ip_address, user_agent, referer, created_at, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        executeSave(sql, event.id, event.traceId, event.type.name, event.resource, event.action, event.durationMs, event.status, serializer.toJson(event.actor), event.ipAddress, event.userAgent, event.referer, event.timestamp, serializer.toJson(event))
+        val sql = """
+            INSERT OR IGNORE INTO kraft_telemetry (
+                id, trace_id, type, resource, action, duration_ms, status, actor, ip_address, 
+                user_agent, device_type, referer, geolocation, impact, request_details, created_at, payload
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """.trimIndent()
+        executeSave(sql,
+            event.id, event.traceId, event.type.name, event.resource, event.action, event.durationMs,
+            event.status, serializer.toJson(event.actor), event.ipAddress, event.userAgent,
+            event.deviceType, event.referer, serializer.toJson(event.geolocation),
+            serializer.toJson(event.impact), serializer.toJson(event.request), event.timestamp, serializer.toJson(event)
+        )
     }
 
     fun saveException(event: PulseExceptionEntry) {
-        val sql = "INSERT OR IGNORE INTO kraft_exceptions (id, trace_id, exception_class, message, stack_trace, path, method, status_code, created_at, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        executeSave(sql, event.id, event.traceId, event.exceptionClass, event.message, event.stackTrace, event.path, event.method, event.statusCode, event.timestamp, serializer.toJson(event))
+        val sql = """
+            INSERT OR IGNORE INTO kraft_exceptions (
+                id, trace_id, tenant_id, user_id, exception_class, message, stack_trace, 
+                stack_summary, path, method, status_code, request_headers, query_params, 
+                host_name, environment, version, is_handled, metadata, created_at, payload
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """.trimIndent()
+        executeSave(sql,
+            event.id, event.traceId, event.tenantId, event.userId, event.exceptionClass, event.message,
+            event.stackTrace, event.stackSummary, event.path, event.method, event.statusCode,
+            serializer.toJson(event.requestHeaders), serializer.toJson(event.queryParams),
+            event.hostName, event.environment, event.version, if(event.isHandled) 1 else 0,
+            serializer.toJson(event.metadata), event.timestamp, serializer.toJson(event)
+        )
     }
 
     fun save(event: QueryEvent) {
-        val sql = "INSERT INTO kraft_query_events (trace_id, sql, query_type, entity_name, table_name, duration_ms, rows_returned, rows_affected, is_slow, is_n_plus_one, data_source, created_at, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        executeSave(sql, event.traceId, event.sql, event.queryType.name, event.entityName, event.tableName, event.durationMs, event.rowsReturned, event.rowsAffected, event.isSlowQuery, event.isPotentialNPlusOne, event.dataSource, event.startedAt, serializer.toJson(event))
+        val sql = """
+            INSERT INTO kraft_query_events (
+                id, trace_id, sql, parameters, query_type, entity_name, table_name, started_at, 
+                duration_ms, rows_affected, rows_returned, is_slow, is_n_plus_one, data_source, 
+                database_product, schema, tenant_id, thread_name, isolation_level, is_read_only, 
+                is_batch, batch_size, transaction_id, execution_plan, error_details, created_at, payload
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """.trimIndent()
+        executeSave(sql,
+            event.id, event.traceId, event.sql, serializer.toJson(event.parameters), event.queryType.name,
+            event.entityName, event.tableName, event.startedAt, event.durationMs, event.rowsAffected,
+            event.rowsReturned, if(event.isSlowQuery) 1 else 0, if(event.isPotentialNPlusOne) 1 else 0,
+            event.dataSource, event.databaseProduct, event.schema, event.tenantId, event.threadName,
+            event.isolationLevel, if(event.isReadOnly) 1 else 0, if(event.isBatch) 1 else 0,
+            event.batchSize, event.transactionId, event.executionPlan, serializer.toJson(event.error),
+            event.startedAt, serializer.toJson(event)
+        )
     }
 
     fun saveTask(task: KraftTaskEvent) {
-        val sql = "INSERT OR REPLACE INTO kraft_tasks (id, trace_id, name, type, status, duration_ms, error_message, created_at, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        executeSave(sql, task.id, task.traceId, task.name, task.type.name, task.status.name, task.durationMs, task.errorMessage, task.createdAt, serializer.toJson(task))
+        val sql = """
+            INSERT OR REPLACE INTO kraft_tasks (
+                id, trace_id, name, type, status, duration_ms, error_message, resource_usage, 
+                node_identifier, retry_count, trigger_source, task_metadata, created_at, payload
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """.trimIndent()
+        executeSave(sql,
+            task.id, task.traceId, task.name, task.type.name, task.status.name, task.durationMs,
+            task.errorMessage, serializer.toJson(task.resourceUsage), task.nodeIdentifier,
+            task.retryCount, task.triggerSource, serializer.toJson(task.taskMetadata),
+            task.createdAt, serializer.toJson(task)
+        )
     }
 
     fun saveHttpClientEvent(event: KraftHttpClientEvent) {
-        val sql = "INSERT OR IGNORE INTO kraft_http_client_events (id, trace_id, url, method, status_code, duration_ms, created_at, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-        executeSave(sql, event.id, event.traceId, event.url, event.method, event.statusCode, event.durationMs, event.createdAt, serializer.toJson(event))
+        val sql = """
+            INSERT OR IGNORE INTO kraft_http_client_events (
+                id, trace_id, host, url, method, status_code, duration_ms, response_body_size, 
+                connection_timeout_ms, error_message, created_at, payload
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """.trimIndent()
+        executeSave(sql,
+            event.id, event.traceId, event.host, event.url, event.method, event.statusCode,
+            event.durationMs, event.responseBodySize, event.connectionTimeoutMs,
+            event.errorMessage, event.createdAt, serializer.toJson(event)
+        )
     }
 
     // --- ANALYTICS QUERIES (Moved from analytics package) ---
@@ -366,25 +349,6 @@ class SQLiteTelemetryProvider(
     }
 
     // --- PIPELINE FETCH METHODS ---
-
-    fun fetchBatch(limit: Int): List<KraftTelemetryEvent> {
-        val events = mutableListOf<KraftTelemetryEvent>()
-        // Exclude anything that has been marked as synced
-        val sql = """
-            SELECT payload 
-            FROM kraft_telemetry 
-            WHERE synced = 0 
-            ORDER BY created_at ASC 
-            LIMIT ?
-        """.trimIndent()
-        return query(sql, params = { it.setInt(1, limit) }) { rs ->
-            while (rs.next()) {
-                events.add(serializer.fromJson(rs.getString("payload"), KraftTelemetryEvent::class.java))
-            }
-            events
-        }
-    }
-
     fun fetchLatestWithQueries(limit: Int): List<TelemetryWithQueries> {
         val results = mutableListOf<TelemetryWithQueries>()
         val sql = "SELECT trace_id, payload FROM kraft_telemetry ORDER BY created_at DESC LIMIT ?"
@@ -453,30 +417,6 @@ class SQLiteTelemetryProvider(
     }
 
     // --- PIPELINE OUTBOX MANAGEMENT ---
-
-    fun markAsSynced(traceIds: List<String>) {
-        if (traceIds.isEmpty()) return
-        val placeholders = traceIds.joinToString(",") { "?" }
-        val tables = listOf("kraft_telemetry", "kraft_query_events", "kraft_exceptions", "kraft_tasks", "kraft_http_client_events")
-        val originalAutoCommit = connection.autoCommit
-        try {
-            connection.autoCommit = false
-            tables.forEach { table ->
-                val sql = "UPDATE $table SET synced = 1 WHERE trace_id IN ($placeholders)"
-                connection.prepareStatement(sql).use { pstmt ->
-                    traceIds.forEachIndexed { index, traceId -> pstmt.setString(index + 1, traceId) }
-                    pstmt.executeUpdate()
-                }
-            }
-            connection.commit()
-            println("⚙️ KraftPulse Outbox State: Flipped state to [Synced] for ${traceIds.size} operational traces.")
-        } catch (e: Exception) {
-            connection.rollback()
-            System.err.println("❌ KraftPulse State Transition Failure: Reverting batch sync flag: ${e.message}")
-        } finally {
-            connection.autoCommit = originalAutoCommit
-        }
-    }
 
     fun pruneOldEvents(retentionDays: Int = 7) {
         val cutoff = System.currentTimeMillis() - (retentionDays * 24 * 60 * 60 * 1000L)
@@ -627,6 +567,139 @@ class SQLiteTelemetryProvider(
             System.err.println("❌ KraftPulse SQLite Multi-Trace Ingestion Error (Table: $table): ${e.message}")
         }
         return list
+    }
+
+    /**
+     * Retrieves all events not yet synced, including orphans (trace_id = NULL)
+     * and correlated events.
+     */
+    fun fetchUnsyncedBatch(limit: Int): ClickHouseTelemetryBatch {
+        // 1. Fetch primary telemetry events that are unsynced
+        val unsyncedPrimary = fetchUnsyncedPrimary(limit)
+
+        // 2. Extract Trace IDs from those that actually have them
+        val traceIds = unsyncedPrimary.map { it.traceId }.distinct()
+
+        // 3. Fetch correlated records for those traces + any truly orphaned records
+        return ClickHouseTelemetryBatch(
+            events = unsyncedPrimary,
+            queries = fetchQueriesForTraces(traceIds) + fetchOrphanedQueries(),
+            exceptions = fetchExceptionsForTraces(traceIds) + fetchOrphanedExceptions(),
+            tasks = fetchTasksForTraces(traceIds) + fetchOrphanedTasks(),
+            httpClientEvents = fetchHttpClientEventsForTraces(traceIds) + fetchOrphanedHttpEvents()
+        )
+    }
+
+    private fun fetchUnsyncedPrimary(limit: Int): List<KraftTelemetryEvent> {
+        val sql = "SELECT payload FROM kraft_telemetry WHERE synced = 0 ORDER BY created_at ASC LIMIT ?"
+        return query(sql, params = { it.setInt(1, limit) }) { rs ->
+            val list = mutableListOf<KraftTelemetryEvent>()
+            while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), KraftTelemetryEvent::class.java))
+            list
+        }
+    }
+
+    // --- Orphaned Record Fetchers ---
+
+    private fun fetchOrphanedQueries(): List<QueryEvent> {
+        return query("SELECT payload FROM kraft_query_events WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+            val list = mutableListOf<QueryEvent>()
+            while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), QueryEvent::class.java))
+            list
+        }
+    }
+
+    private fun fetchOrphanedExceptions(): List<PulseExceptionEntry> {
+        return query("SELECT payload FROM kraft_exceptions WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+            val list = mutableListOf<PulseExceptionEntry>()
+            while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), PulseExceptionEntry::class.java))
+            list
+        }
+    }
+
+    fun fetchOrphanedTasks(): List<KraftTaskEvent> {
+        val count = query("SELECT COUNT(*) FROM kraft_tasks WHERE synced = 0") { it.next(); it.getInt(1) }
+        logger.info("DEBUG: Found {} unsynced tasks in kraft_tasks", count)
+        return query("SELECT payload FROM kraft_tasks WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+            val list = mutableListOf<KraftTaskEvent>()
+            while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), KraftTaskEvent::class.java))
+            list
+        }
+    }
+
+    private fun fetchOrphanedHttpEvents(): List<KraftHttpClientEvent> {
+        return query("SELECT payload FROM kraft_http_client_events WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+            val list = mutableListOf<KraftHttpClientEvent>()
+            while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), KraftHttpClientEvent::class.java))
+            list
+        }
+    }
+
+    /**
+     * Updates sync status to 1 for all records (primary + correlated children)
+     * belonging to the given trace IDs. Must cover ALL FIVE tables, mirroring
+     * markOrphansAsSynced's multi-table loop — otherwise correlated child
+     * records (queries/tasks/exceptions/http events) for an already-synced
+     * parent event become permanently unreachable.
+     */
+    fun markAsSynced(traceIds: List<String>) {
+        if (traceIds.isEmpty()) return
+
+        val tables = listOf(
+            "kraft_telemetry",
+            "kraft_query_events",
+            "kraft_exceptions",
+            "kraft_tasks",
+            "kraft_http_client_events"
+        )
+
+        val originalAutoCommit = connection.autoCommit
+        try {
+            connection.autoCommit = false
+            tables.forEach { table ->
+                val placeholders = traceIds.joinToString(",") { "?" }
+                val sql = "UPDATE $table SET synced = 1 WHERE trace_id IN ($placeholders) AND synced = 0"
+                connection.prepareStatement(sql).use { stmt ->
+                    traceIds.forEachIndexed { idx, traceId ->
+                        stmt.setString(idx + 1, traceId)
+                    }
+                    stmt.executeUpdate()
+                }
+            }
+            connection.commit()
+            println("✅ KraftPulse Outbox State: ${traceIds.size} traces marked as [Synced] across all tables.")
+        } catch (e: Exception) {
+            connection.rollback()
+            System.err.println("❌ KraftPulse Sync Failure: ${e.message}")
+        } finally {
+            connection.autoCommit = originalAutoCommit
+        }
+    }
+
+    /**
+     * Updates the sync status to 1 (synced) for all records where trace_id is NULL.
+     * This should be called after successfully syncing the orphaned batch.
+     */
+    fun markOrphansAsSynced() {
+        val tables = listOf("kraft_telemetry", "kraft_query_events", "kraft_exceptions", "kraft_tasks", "kraft_http_client_events")
+        val originalAutoCommit = connection.autoCommit
+        try {
+            connection.autoCommit = false
+            tables.forEach { table ->
+                // Ensure the table actually has the trace_id column before running
+                val sql = "UPDATE $table SET synced = 1 WHERE trace_id IS NULL AND synced = 0"
+                connection.createStatement().use { stmt ->
+                    stmt.executeUpdate(sql)
+                }
+            }
+            connection.commit()
+            println("✅ KraftPulse Outbox State: All orphan records marked as [Synced].")
+        } catch (e: Exception) {
+            connection.rollback()
+            System.err.println("❌ KraftPulse Orphan Sync Failure: ${e.message}")
+        } finally {
+            connection.autoCommit = originalAutoCommit
+        }
     }
 
     fun close() = if (!connection.isClosed) connection.close() else Unit

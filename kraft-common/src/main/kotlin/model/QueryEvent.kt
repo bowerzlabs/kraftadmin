@@ -1,12 +1,15 @@
 package model
 
-// ---------------------------------------------------------------------------
-// QueryEvent — the detailed record of a single database operation.
-// Populated by the JPA/JDBC interceptor and handed to QueryPulseInterceptor.
-// ---------------------------------------------------------------------------
+import java.util.UUID
 
+/*
+ QueryEvent — the detailed record of a single database operation.
+ Populated by the JPA/JDBC interceptor and handed to QueryPulseInterceptor.
+*/
 data class QueryEvent(
-    val traceId: String, // <--- Link to KraftTelemetryEvent.traceId
+    val id: String = UUID.randomUUID().toString(),
+    val traceId: String,
+
     // The SQL as it was sent to the database (with ? placeholders)
     val sql: String,
 
@@ -21,15 +24,15 @@ data class QueryEvent(
     val tableName: String? = null,
 
     // Timing — callers fill startedAt, interceptor computes durationMs
-    val startedAt: Long,                    // System.currentTimeMillis()
+    val startedAt: Long,                           // System.currentTimeMillis()
     val durationMs: Long,
 
     // Outcome
-    val rowsAffected: Int = 0,             // For INSERT/UPDATE/DELETE
-    val rowsReturned: Int = 0,             // For SELECT
+    val rowsAffected: Int = 0,                     // For INSERT/UPDATE/DELETE
+    val rowsReturned: Int = 0,                     // For SELECT
 
     // Performance signals
-    val isSlowQuery: Boolean = false,       // True if > configured threshold
+    val isSlowQuery: Boolean = false,              // True if > configured threshold
     val isPotentialNPlusOne: Boolean = false,
 
     // Error detail — null when query succeeded
@@ -37,8 +40,26 @@ data class QueryEvent(
 
     // Full JDBC connection metadata (useful for multi-datasource setups)
     val dataSource: String = "primary",
-    val databaseProduct: String? = null,   // e.g. "PostgreSQL", "MySQL"
-    val schema: String? = null
+    val databaseProduct: String? = null,           // e.g. "PostgreSQL", "MySQL", "ClickHouse"
+    val schema: String? = null,
+
+    // --- NEW FIELDS FOR COMPREHENSIVE OBSERVABILITY ---
+
+    // Multi-tenant footprint
+    val tenantId: String? = null,                  // <--- Maps to application isolation contexts
+
+    // Concurrency & Execution Context
+    val threadName: String? = null,                // Which application thread executed this
+    val isolationLevel: String? = null,            // e.g., "TRANSACTION_READ_COMMITTED"
+    val isReadOnly: Boolean = false,               // Indicates if query was routed to a read replica
+
+    // Batch Context
+    val isBatch: Boolean = false,                  // Flag if part of executeBatch()
+    val batchSize: Int? = null,                    // Size of batch if applicable
+
+    // Tracing & Transaction Deep-Dive
+    val transactionId: String? = null,             // ID linking queries in the same DB transaction
+    val executionPlan: String? = null              // Optional EXPLAIN output for slow queries
 )
 
 enum class QueryType {
@@ -65,7 +86,7 @@ data class QueryError(
 // ---------------------------------------------------------------------------
 
 data class QueryPattern(
-    val normalizedSql: String,             // SQL with literals stripped
+    val normalizedSql: String,                 // SQL with literals stripped
     val entityName: String?,
     var count: Int = 1
 )
