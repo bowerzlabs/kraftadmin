@@ -28,10 +28,14 @@ class SQLiteTelemetryProvider(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(SQLiteTelemetryProvider::class.java)
 
+    companion object {
+        private const val ORPHAN_TRACE_SENTINEL = "outbound-standalone"
+    }
+
     // Make connection nullable or lateinit
     private lateinit var connection: Connection
 
-    // 1. Define the property first so it is ready for the init block
+    //  Define the property first so it is ready for the init block
     private val dbPath: String = run {
         val home = System.getProperty("user.home")
         val safeAppName = appName.replace(Regex("[^a-zA-Z0-9.-]"), "_")
@@ -41,7 +45,7 @@ class SQLiteTelemetryProvider(
     }
 
     init {
-        // 3. Now dbPath is guaranteed to be initialized
+        //  Now dbPath is guaranteed to be initialized
         migrateSchema(dbPath)
         this.connection = DriverManager.getConnection("jdbc:sqlite:$dbPath?journal_mode=WAL")
     }
@@ -57,7 +61,7 @@ class SQLiteTelemetryProvider(
             flyway.migrate()
             logger.info("✅ KraftPulse: Telemetry schema migrated successfully.")
         } catch (e: Exception) {
-            logger.error("❌ KraftPulse: Schema migration failed", e)
+            logger.error("KraftPulse: Schema migration failed", e)
             throw e
         }
     }
@@ -417,7 +421,6 @@ class SQLiteTelemetryProvider(
     }
 
     // --- PIPELINE OUTBOX MANAGEMENT ---
-
     fun pruneOldEvents(retentionDays: Int = 7) {
         val cutoff = System.currentTimeMillis() - (retentionDays * 24 * 60 * 60 * 1000L)
         val tables = listOf("kraft_telemetry", "kraft_query_events", "kraft_exceptions", "kraft_tasks", "kraft_http_client_events")
@@ -601,8 +604,51 @@ class SQLiteTelemetryProvider(
 
     // --- Orphaned Record Fetchers ---
 
+//    private fun fetchOrphanedQueries(): List<QueryEvent> {
+//        return query("SELECT payload FROM kraft_query_events WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+//            val list = mutableListOf<QueryEvent>()
+//            while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), QueryEvent::class.java))
+//            list
+//        }
+//    }
+//
+//    private fun fetchOrphanedExceptions(): List<PulseExceptionEntry> {
+//        return query("SELECT payload FROM kraft_exceptions WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+//            val list = mutableListOf<PulseExceptionEntry>()
+//            while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), PulseExceptionEntry::class.java))
+//            list
+//        }
+//    }
+//
+//    fun fetchOrphanedTasks(): List<KraftTaskEvent> {
+//        val count = query("SELECT COUNT(*) FROM kraft_tasks WHERE synced = 0") { it.next(); it.getInt(1) }
+//        logger.info("DEBUG: Found {} unsynced tasks in kraft_tasks", count)
+//        return query("SELECT payload FROM kraft_tasks WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+//            val list = mutableListOf<KraftTaskEvent>()
+//            while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), KraftTaskEvent::class.java))
+//            list
+//        }
+//    }
+//
+//    private fun fetchOrphanedHttpEvents(): List<KraftHttpClientEvent> {
+//        return query("SELECT payload FROM kraft_http_client_events WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+//            val list = mutableListOf<KraftHttpClientEvent>()
+//            while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), KraftHttpClientEvent::class.java))
+//            list
+//        }
+//    }
+
+    // --- Orphaned Record Fetchers — FIXED: equality instead of invalid IS comparison ---
+// Since trace_id is NOT NULL on these tables, "orphan" here means a sentinel
+// value used by background/system-originated events that have no real
+// request trace (e.g. standalone outbound calls, system-initiated tasks).
+// Pick ONE consistent sentinel and use it everywhere it's written AND read.
+
     private fun fetchOrphanedQueries(): List<QueryEvent> {
-        return query("SELECT payload FROM kraft_query_events WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+        return query(
+            "SELECT payload FROM kraft_query_events WHERE synced = 0 AND trace_id = ?",
+            params = { it.setString(1, ORPHAN_TRACE_SENTINEL) }
+        ) { rs ->
             val list = mutableListOf<QueryEvent>()
             while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), QueryEvent::class.java))
             list
@@ -610,7 +656,10 @@ class SQLiteTelemetryProvider(
     }
 
     private fun fetchOrphanedExceptions(): List<PulseExceptionEntry> {
-        return query("SELECT payload FROM kraft_exceptions WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+        return query(
+            "SELECT payload FROM kraft_exceptions WHERE synced = 0 AND trace_id = ?",
+            params = { it.setString(1, ORPHAN_TRACE_SENTINEL) }
+        ) { rs ->
             val list = mutableListOf<PulseExceptionEntry>()
             while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), PulseExceptionEntry::class.java))
             list
@@ -618,9 +667,16 @@ class SQLiteTelemetryProvider(
     }
 
     fun fetchOrphanedTasks(): List<KraftTaskEvent> {
-        val count = query("SELECT COUNT(*) FROM kraft_tasks WHERE synced = 0") { it.next(); it.getInt(1) }
-        logger.info("DEBUG: Found {} unsynced tasks in kraft_tasks", count)
-        return query("SELECT payload FROM kraft_tasks WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+        val count = query(
+            "SELECT COUNT(*) as cnt FROM kraft_tasks WHERE synced = 0 AND trace_id = ?",
+            params = { it.setString(1, ORPHAN_TRACE_SENTINEL) }
+        ) { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
+        logger.info("DEBUG: Found {} unsynced orphan tasks in kraft_tasks", count)
+
+        return query(
+            "SELECT payload FROM kraft_tasks WHERE synced = 0 AND trace_id = ?",
+            params = { it.setString(1, ORPHAN_TRACE_SENTINEL) }
+        ) { rs ->
             val list = mutableListOf<KraftTaskEvent>()
             while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), KraftTaskEvent::class.java))
             list
@@ -628,10 +684,46 @@ class SQLiteTelemetryProvider(
     }
 
     private fun fetchOrphanedHttpEvents(): List<KraftHttpClientEvent> {
-        return query("SELECT payload FROM kraft_http_client_events WHERE synced = 0 AND trace_id IS 'outbound'") { rs ->
+        return query(
+            "SELECT payload FROM kraft_http_client_events WHERE synced = 0 AND trace_id = ?",
+            params = { it.setString(1, ORPHAN_TRACE_SENTINEL) }
+        ) { rs ->
             val list = mutableListOf<KraftHttpClientEvent>()
             while (rs.next()) list.add(serializer.fromJson(rs.getString("payload"), KraftHttpClientEvent::class.java))
             list
+        }
+    }
+
+// --- markAsSynced/markOrphansAsSynced — update to match sentinel ---
+
+    fun markOrphansAsSynced() {
+        val tables = listOf("kraft_query_events", "kraft_exceptions", "kraft_tasks", "kraft_http_client_events")
+        // ✅ kraft_telemetry excluded — its trace_id IS genuinely nullable per schema,
+        // so it keeps the original IS NULL check separately below
+        val originalAutoCommit = connection.autoCommit
+        try {
+            connection.autoCommit = false
+
+            tables.forEach { table ->
+                val sql = "UPDATE $table SET synced = 1 WHERE trace_id = ? AND synced = 0"
+                connection.prepareStatement(sql).use { stmt ->
+                    stmt.setString(1, ORPHAN_TRACE_SENTINEL)
+                    stmt.executeUpdate()
+                }
+            }
+
+            // kraft_telemetry's trace_id is genuinely nullable — keep IS NULL here
+            connection.prepareStatement(
+                "UPDATE kraft_telemetry SET synced = 1 WHERE trace_id IS NULL AND synced = 0"
+            ).use { it.executeUpdate() }
+
+            connection.commit()
+            println("✅ KraftPulse Outbox State: All orphan records marked as [Synced].")
+        } catch (e: Exception) {
+            connection.rollback()
+            System.err.println("❌ KraftPulse Orphan Sync Failure: ${e.message}")
+        } finally {
+            connection.autoCommit = originalAutoCommit
         }
     }
 
@@ -680,7 +772,7 @@ class SQLiteTelemetryProvider(
      * Updates the sync status to 1 (synced) for all records where trace_id is NULL.
      * This should be called after successfully syncing the orphaned batch.
      */
-    fun markOrphansAsSynced() {
+    fun markOrphansAsSynced1() {
         val tables = listOf("kraft_telemetry", "kraft_query_events", "kraft_exceptions", "kraft_tasks", "kraft_http_client_events")
         val originalAutoCommit = connection.autoCommit
         try {
@@ -699,6 +791,17 @@ class SQLiteTelemetryProvider(
             System.err.println("❌ KraftPulse Orphan Sync Failure: ${e.message}")
         } finally {
             connection.autoCommit = originalAutoCommit
+        }
+    }
+
+    fun vacuum() {
+        try {
+            connection.createStatement().use { stmt ->
+                stmt.execute("VACUUM")
+            }
+            logger.info("🗜️ SQLite database vacuumed.")
+        } catch (e: Exception) {
+            logger.error("Failed to vacuum SQLite", e)
         }
     }
 

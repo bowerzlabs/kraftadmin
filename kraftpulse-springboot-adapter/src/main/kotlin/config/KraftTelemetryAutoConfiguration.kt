@@ -1,157 +1,9 @@
-//package config
-//
-//import analytics.AnalyticsProvider
-//import analytics.CloudAnalyticsProvider
-//import analytics.LocalAnalyticsProvider
-//import json.KraftJsonSerializer
-//import org.slf4j.LoggerFactory
-//import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
-//import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
-//import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-//import org.springframework.context.ApplicationEventPublisher
-//import org.springframework.context.annotation.Bean
-//import org.springframework.context.annotation.Configuration
-//import org.springframework.context.annotation.Primary
-//import org.springframework.core.env.Environment
-//import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
-//import telemetry.KraftTelemetryService
-//import telemetry.SQLiteTelemetryProvider
-//import telemetry.NoOpTelemetryService
-//import util.JacksonKraftJsonSerializer
-//import util.SpringBootTelemetryService
-//import java.util.concurrent.Executor
-//
-//@Configuration
-//class KraftTelemetryAutoConfiguration(
-//    private val environment: Environment,
-//    private val properties: KraftPulseSpringKraftAdminProperties
-//) {
-//
-//    private val logger = LoggerFactory.getLogger(javaClass)
-//
-//    @Bean(destroyMethod = "close")
-//    @ConditionalOnMissingBean
-//    @ConditionalOnExpression(
-//        "\${kraftpulse.enabled:true} and \${kraftpulse.telemetry-config.enabled:true}"
-//    )
-//    fun sqliteTelemetryProvider(
-//        publisher: ApplicationEventPublisher
-//    ): SQLiteTelemetryProvider {
-//        // Resolve database location path safely
-//        val path = properties.telemetryConfig.path ?: ".kraft-telemetry.db"
-//
-//        logger.info("KraftPulse: Initializing embedded engine storage target at -> $path")
-//        val provider = SQLiteTelemetryProvider(
-//            appName = environment.getProperty("spring.application.name") ?: "KraftPulse",
-//            serializer = kraftPulseJsonSerializer()
-//            // Pass the local path parameter to your provider constructor here if required
-//        )
-//
-//        // The Bridge: SQLite Write -> Spring Event -> Controller SSE / Analytics
-//        provider.onEventPersisted = { event ->
-//            publisher.publishEvent(event)
-//        }
-//
-//        return provider
-//    }
-//
-//    @Bean
-//    @Primary
-//    @ConditionalOnExpression(
-//        "\${kraftpulse.enabled:true} and \${kraftpulse.telemetry-config.enabled:true}"
-//    )
-//    fun telemetryService(
-//        kraftJsonSerializer: KraftJsonSerializer,
-//        provider: SQLiteTelemetryProvider,
-//        analyticsProvider: AnalyticsProvider
-//    ): KraftTelemetryService {
-//        return SpringBootTelemetryService(
-//            properties = properties,
-//            serializer = kraftJsonSerializer,
-//            commonStore = provider,
-//            analyticsProvider = analyticsProvider,
-//        )
-//    }
-//
-//    @Bean(name = ["kraftTelemetryExecutor"])
-//    @ConditionalOnExpression(
-//        "\${kraftpulse.enabled:true} and \${kraftpulse.telemetry-config.enabled:true}"
-//    )
-//    fun kraftTelemetryExecutor(): Executor {
-//        val executor = ThreadPoolTaskExecutor()
-//        executor.corePoolSize = 2
-//        executor.maxPoolSize = 5
-//        executor.setQueueCapacity(500)
-//        executor.setThreadNamePrefix("KraftTelemetry-")
-//        executor.initialize()
-//        return executor
-//    }
-//
-//    /**
-//     * The Fallback: This satisfies components like the Auditor or ErrorAttributes
-//     * when the real telemetryService is disabled in YAML.
-//     */
-//    @Bean
-//    @ConditionalOnMissingBean(KraftTelemetryService::class)
-//    fun noOpTelemetryService(): KraftTelemetryService = NoOpTelemetryService()
-//
-//    @Bean
-//    @Primary
-//    fun kraftPulseJsonSerializer(): KraftJsonSerializer = JacksonKraftJsonSerializer()
-//
-//    @Bean
-//    @ConditionalOnProperty(prefix = "kraftpulse.telemetry-config", name = ["enabled"], havingValue = "true", matchIfMissing = false)
-//    @ConditionalOnMissingBean(AnalyticsProvider::class)
-//    fun analyticsProvider(sqliteProvider: SQLiteTelemetryProvider?): AnalyticsProvider {
-//        val config = properties.telemetryConfig
-//        val providerType = config.provider ?: TelemetryProvider.LOCAL
-//
-//        logger.info("KraftPulse: Initializing analytics runtime mapping context pipeline. Resolved provider target: $providerType")
-//
-//        return when (providerType) {
-//            TelemetryProvider.CLOUD -> {
-//                val apiKey = config.apiKey ?: throw IllegalStateException(
-//                    "KraftPulse Error: Telemetry provider configured for [CLOUD] but missing mandatory apiKey authentication key."
-//                )
-//                val secretKey = config.secretKey ?: throw IllegalStateException(
-//                    "KraftPulse Error: Telemetry provider configured for [CLOUD] but missing mandatory secretKey authentication key."
-//                )
-//
-//                // Dynamic environment parsing logic for url mapping
-//                val targetBaseUrl = config.cloudUrl
-//                    ?: environment.getProperty("kraftpulse.telemetry-config.cloud-url")
-//                    ?: "http://localhost:8090"
-//
-//                // Cleanly remove any trailing slashes to enforce predictable endpoint formats
-//                val resolvedIngestUrl = "${targetBaseUrl.removeSuffix("/")}/api/telemetry/ingest"
-//
-//                logger.info("KraftPulse: Wiring CloudAnalyticsProvider target sink -> $resolvedIngestUrl")
-//                CloudAnalyticsProvider(
-//                    apiKey = apiKey,
-//                    secretKey = secretKey,
-//                    serializer = kraftPulseJsonSerializer(),
-//                    baseUrl = resolvedIngestUrl
-//                )
-//            }
-//            TelemetryProvider.LOCAL -> {
-//                if (sqliteProvider == null) {
-//                    throw IllegalStateException(
-//                        "KraftPulse Error: Telemetry provider configured for [LOCAL] but SQLiteTelemetryProvider instance was missing in context space."
-//                    )
-//                }
-//
-//                logger.info("KraftPulse: Wiring LocalAnalyticsProvider (SQLite-backed) fallback tracking database target.")
-//                LocalAnalyticsProvider(sqliteProvider)
-//            }
-//        }
-//    }
-//}
-
 package config
 
-import analytics.AnalyticsProvider
+import analytics.AnalyticsReader
 import analytics.CloudAnalyticsProvider
 import analytics.LocalAnalyticsProvider
+import analytics.TelemetryWriter
 import json.KraftJsonSerializer
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
@@ -166,8 +18,8 @@ import org.springframework.http.client.ClientHttpRequestInterceptor
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.web.client.RestTemplate
 import telemetry.KraftTelemetryService
-import telemetry.SQLiteTelemetryProvider
 import telemetry.NoOpTelemetryService
+import telemetry.SQLiteTelemetryProvider
 import util.JacksonKraftJsonSerializer
 import util.SpringBootTelemetryService
 import java.util.concurrent.Executor
@@ -217,25 +69,70 @@ class KraftTelemetryAutoConfiguration(
         return provider
     }
 
+    // Always available — this is the durable write path regardless of provider
+    @Bean
+    fun localAnalyticsProvider(sqLiteTelemetryProvider: SQLiteTelemetryProvider): LocalAnalyticsProvider {
+        return LocalAnalyticsProvider(sqLiteTelemetryProvider)
+    }
+
+    @Bean
+    fun telemetryWriter(local: LocalAnalyticsProvider): TelemetryWriter = local
+
+    // Reader switches based on config — local SQLite or cloud ClickHouse-backed API
     @Bean
     @Primary
-    @ConditionalOnExpression(
-        "\${kraftpulse.enabled:true} and \${kraftpulse.telemetry-config.enabled:true}"
-    )
+    fun analyticsReader(
+        local: LocalAnalyticsProvider,
+        kraftJsonSerializer: KraftJsonSerializer
+    ): AnalyticsReader {
+        return when (properties.telemetryConfig.provider) {
+            TelemetryProvider.LOCAL -> local
+            TelemetryProvider.CLOUD -> CloudAnalyticsProvider(
+                apiKey = properties.telemetryConfig.apiKey ?: "",
+                secretKey = properties.telemetryConfig.secretKey ?: "",
+                serializer = kraftJsonSerializer,
+                baseUrl = properties.telemetryConfig.cloudUrl ?: "http://localhost:8090"
+            )
+        }
+    }
+
+    @Bean
+    @Primary
+    @ConditionalOnExpression("\${kraftpulse.enabled:true} and \${kraftpulse.telemetry-config.enabled:true}")
     fun telemetryService(
         kraftJsonSerializer: KraftJsonSerializer,
         provider: SQLiteTelemetryProvider,
-        analyticsProvider: AnalyticsProvider,
-        telemetryRestTemplate: RestTemplate // Inject the secure RestTemplate here
+        analyticsReader: AnalyticsReader, // ✅ renamed — read-only, used for dashboard queries
+        telemetryRestTemplate: RestTemplate,
     ): KraftTelemetryService {
         return SpringBootTelemetryService(
             properties = properties,
             serializer = kraftJsonSerializer,
             commonStore = provider,
-            analyticsProvider = analyticsProvider,
-            restTemplate = telemetryRestTemplate // Pass it along
+            analyticsReader = analyticsReader, // ✅ only used for reads now
+            restTemplate = telemetryRestTemplate
         )
     }
+
+//    @Bean
+//    @Primary
+//    @ConditionalOnExpression(
+//        "\${kraftpulse.enabled:true} and \${kraftpulse.telemetry-config.enabled:true}"
+//    )
+//    fun telemetryService(
+//        kraftJsonSerializer: KraftJsonSerializer,
+//        provider: SQLiteTelemetryProvider,
+//        analyticsProvider: AnalyticsProvider,
+//        telemetryRestTemplate: RestTemplate // Inject the secure RestTemplate here
+//    ): KraftTelemetryService {
+//        return SpringBootTelemetryService(
+//            properties = properties,
+//            serializer = kraftJsonSerializer,
+//            commonStore = provider,
+//            analyticsProvider = analyticsProvider,
+//            restTemplate = telemetryRestTemplate // Pass it along
+//        )
+//    }
 
     @Bean(name = ["kraftTelemetryExecutor"])
     @ConditionalOnExpression(
@@ -245,7 +142,7 @@ class KraftTelemetryAutoConfiguration(
         val executor = ThreadPoolTaskExecutor()
         executor.corePoolSize = 2
         executor.maxPoolSize = 5
-        executor.setQueueCapacity(500)
+        executor.queueCapacity = 500
         executor.setThreadNamePrefix("KraftTelemetry-")
         executor.initialize()
         return executor
@@ -261,8 +158,8 @@ class KraftTelemetryAutoConfiguration(
 
     @Bean
     @ConditionalOnProperty(prefix = "kraftpulse.telemetry-config", name = ["enabled"], havingValue = "true", matchIfMissing = false)
-    @ConditionalOnMissingBean(AnalyticsProvider::class)
-    fun analyticsProvider(sqliteProvider: SQLiteTelemetryProvider?): AnalyticsProvider {
+    @ConditionalOnMissingBean(AnalyticsReader::class)
+    fun analyticsProvider(sqliteProvider: SQLiteTelemetryProvider?): AnalyticsReader {
         val config = properties.telemetryConfig
         val providerType = config.provider ?: TelemetryProvider.LOCAL
 
