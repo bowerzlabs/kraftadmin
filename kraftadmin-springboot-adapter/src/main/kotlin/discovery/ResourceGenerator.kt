@@ -1,5 +1,7 @@
 package com.kraftadmin.discovery
 
+import com.kraftadmin.annotations.FileConfig
+import com.kraftadmin.annotations.FileConfigDefaults
 import com.kraftadmin.annotations.KraftAdminCustomAction
 import com.kraftadmin.annotations.KraftAdminField
 import com.kraftadmin.annotations.KraftAdminLookup
@@ -11,6 +13,7 @@ import com.kraftadmin.spi.AbstractResource
 import com.kraftadmin.spi.KraftAdminResource
 import com.kraftadmin.spi.SelectOption
 import com.kraftadmin.ui_descriptors.ColumnDescriptor
+import com.kraftadmin.ui_descriptors.FileConfigDescriptor
 import com.kraftadmin.ui_descriptors.KraftActionDescriptor
 import com.kraftadmin.ui_descriptors.LookupDescriptor
 import com.kraftadmin.ui_descriptors.WYSIWYGOptions
@@ -153,6 +156,7 @@ object ResourceGenerator {
 
                     //
                     val adminFieldAnn = resolveAnnotation(javaField, prop, KraftAdminField::class)
+
                     val wysiwygConfigValue = if (colType == FormInputType.WYSIWYG) {
                         adminFieldAnn?.wysiwygConfig?.let { ann ->
                             WYSIWYGOptions(
@@ -162,6 +166,10 @@ object ResourceGenerator {
                             )
                         }
                     } else null
+
+                    // resolve file options
+                    val fileOptions = resolveFileConfig(colType, adminFieldAnn?.fileConfig)
+
 
                     // === STEP 7: Resolve lookup config ===
                     val lookupConfig = targetEntityClass?.let { tkc ->
@@ -241,7 +249,8 @@ object ResourceGenerator {
 
                         placeholder = if (targetEntityClass != null) "Search ${prop.name}..." else "Enter ${prop.name}",
                         visible = !prop.name.equals("id", ignoreCase = true) && !isOneToMany,
-                        wysiwygConfig = wysiwygConfigValue
+                        wysiwygConfig = wysiwygConfigValue,
+                        fileOptions = fileOptions
                     )
                 }
             }
@@ -281,6 +290,9 @@ object ResourceGenerator {
                         }
                     } else null
 
+                    // resolve file options
+                    val fileOptions = resolveFileConfig(type, subAdminFieldAnn?.fileConfig)
+
                     // Extract rules for sub-fields
                     val subRules = validationExtractor.extractRules(javaField)
                     val subMessages = validationExtractor.extractMessages(javaField)
@@ -305,9 +317,29 @@ object ResourceGenerator {
                         visible = true,
                         required = subRules.contains("required"),
                         placeholder = "Enter ${prop.name}",
-                        wysiwygConfig = subWysiwygConfigValue
+                        wysiwygConfig = subWysiwygConfigValue,
+                        fileOptions = fileOptions
                     )
                 }
+            }
+            // Define a helper to resolve FileConfig
+            fun resolveFileConfig(type: FormInputType, ann: FileConfig?): FileConfigDescriptor? {
+                if (type != FormInputType.FILE && type != FormInputType.IMAGE && type != FormInputType.VIDEO) return null
+
+                val defaults = FileConfigDefaults.getDefaultsFor(type)
+
+                // If no annotation, return defaults
+                if (ann == null) return defaults
+
+                // Otherwise, merge: prefer annotation values, fallback to defaults
+                return FileConfigDescriptor(
+                    multiple = ann.multiple,
+                    maxFiles = ann.maxFiles,
+                    allowedExtensions = ann.allowedExtensions.takeIf { it.isNotEmpty() }?.map { it.value } ?: defaults.allowedExtensions,
+                    maxSizeBytes = ann.maxSizeBytes.takeIf { it > 0 } ?: defaults.maxSizeBytes,
+                    minSizeBytes = ann.minSizeBytes,
+                    allowedMimeTypes = ann.allowedMimeTypes.takeIf { it.isNotEmpty() }?.map { it.value } ?: defaults.allowedMimeTypes
+                )
             }
 
             // Passing booleans avoids re-checking annotations inside resolveTypeAndDefault
