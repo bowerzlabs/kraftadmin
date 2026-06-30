@@ -1,4 +1,4 @@
-package com.kraftadmin.controller
+package controller
 
 import com.kraftadmin.utils.files.AdminStorageProvider
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -24,6 +24,7 @@ class KraftAdminSpringbootUploadController(
         @RequestParam(value = "files", required = false) files: List<MultipartFile>?,
         @RequestParam("oldUrl", required = false) oldUrl: String?
     ): ResponseEntity<Map<String, Any>> {
+
 
         // Handle single file
         if (file != null) {

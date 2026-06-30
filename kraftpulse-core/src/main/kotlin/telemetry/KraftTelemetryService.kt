@@ -1,6 +1,7 @@
 package telemetry
 
 import analytics.TelemetryWithQueries
+import com.kraftadmin.model.KraftTelemetryEvent
 import model.KraftHttpClientEvent
 import model.KraftTaskEvent
 import model.PulseExceptionEntry

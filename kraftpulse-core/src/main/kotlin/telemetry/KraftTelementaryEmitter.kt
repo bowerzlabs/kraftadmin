@@ -1,6 +1,6 @@
 package telementary
 
-import telemetry.KraftTelemetryEvent
+import com.kraftadmin.model.KraftTelemetryEvent
 
 /**
  * Interface for components that send telemetry to external cloud systems.

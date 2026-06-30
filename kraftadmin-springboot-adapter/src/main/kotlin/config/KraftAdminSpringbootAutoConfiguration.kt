@@ -7,13 +7,13 @@ import com.kraftadmin.discovery.ResourceGenerator
 import com.kraftadmin.discovery.SpringBootEnvironmentProvider
 import com.kraftadmin.spi.KraftEnvironmentProvider
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptorFactory
-import com.kraftadmin.util.*
 import com.kraftadmin.utils.files.AdminStorageProvider
 import com.kraftadmin.utils.files.CloudinaryProvider
 import com.kraftadmin.utils.files.LocalFileSystemAdapter
 import com.kraftadmin.utils.files.S3Adapter
 import com.kraftadmin.utils.validation.KraftValidationExtractor
 import config.KraftPulseSpringKraftAdminProperties
+import config.KraftPulseVersionGuardAutoConfiguration
 import json.KraftJsonSerializer
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationRunner
@@ -30,6 +30,7 @@ import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import security.SecurityProviderChain
 import util.JacksonKraftJsonSerializer
+import util.JakartaValidationExtractor
 
 @AutoConfiguration
 @AutoConfigureAfter(
@@ -39,6 +40,7 @@ import util.JacksonKraftJsonSerializer
     ]
 )
 @Import(
+    KraftPulseVersionGuardAutoConfiguration::class,
     KraftAdminJpaAutoConfiguration::class,
     KraftAdminMongoAutoConfiguration::class,
     KraftAdminDiscoveryAutoConfiguration::class,

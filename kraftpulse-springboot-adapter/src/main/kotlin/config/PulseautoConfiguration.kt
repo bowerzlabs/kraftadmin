@@ -1,6 +1,6 @@
 package config
 
-import analytics.AnalyticsProvider
+import analytics.TelemetryWriter
 import interceptors.QueryPulseInterceptor
 import jakarta.servlet.Filter
 import jakarta.servlet.FilterChain
@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.core.annotation.Order
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
-import telemetry.RequestDetails
+import com.kraftadmin.model.RequestDetails
 import util.PulseContextHolder
 import java.util.UUID
 import javax.sql.DataSource
@@ -181,21 +181,10 @@ class LoggingQueryPulseInterceptor : QueryPulseInterceptor {
  */
 @Component
 class AsyncQueryPulseInterceptor(
-    private val analyticsProvider: AnalyticsProvider
+    private val analyticsWriter: TelemetryWriter
 ) : QueryPulseInterceptor {
 
     private val log = org.slf4j.LoggerFactory.getLogger(javaClass)
-
-//    @Async("pulseTaskExecutor")
-//    override fun onQuery(context: PulseContext, event: QueryEvent) {
-//        // Ensure the traceId from the request context is attached to the event
-//        val enrichedEvent = event.copy(traceId = context.traceId ?: "system")
-//        try {
-//            analyticsProvider.save(enrichedEvent)
-//        } catch (e: Exception) {
-//            log.error("[Pulse] Failed to persist query telemetry asynchronously", e)
-//        }
-//    }
 
     @Async("pulseTaskExecutor")
     override fun onQuery(context: PulseContext, event: QueryEvent) {
@@ -208,7 +197,7 @@ class AsyncQueryPulseInterceptor(
         log.debug("DEBUG: Persistence started on thread: ${Thread.currentThread().name} for trace: $resolvedTraceId")
 
         try {
-            analyticsProvider.save(enrichedEvent)
+           analyticsWriter.save(enrichedEvent)
         } catch (e: Exception) {
             log.error("[Pulse] Failed to persist query telemetry", e)
         }
@@ -218,7 +207,7 @@ class AsyncQueryPulseInterceptor(
     override fun onBatch(context: PulseContext, events: List<QueryEvent>) {
         val traceId = context.traceId ?: "system"
         events.forEach { event ->
-            analyticsProvider.save(event.copy(traceId = traceId))
+           analyticsWriter.save(event.copy(traceId = traceId))
         }
     }
 

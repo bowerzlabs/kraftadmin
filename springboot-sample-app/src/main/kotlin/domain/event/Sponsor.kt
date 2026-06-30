@@ -1,5 +1,6 @@
 package com.kraftadmin.domain.event
 
+import com.kraftadmin.annotations.FileConfig
 import com.kraftadmin.annotations.KraftAdminField
 import com.kraftadmin.domain.base.BaseEntity
 import com.kraftadmin.enums.FormInputType
@@ -11,7 +12,12 @@ import jakarta.persistence.Enumerated
 class Sponsor(
     var name: String = "",
     var website: String = "",
-    @KraftAdminField(inputType = FormInputType.IMAGE)
+    @KraftAdminField(
+        inputType = FormInputType.FILE,
+        fileConfig = FileConfig(
+            multiple = false
+        )
+    )
     var logoUrl: String? = null,
     @Enumerated(EnumType.STRING)
     var level: SponsorshipLevel = SponsorshipLevel.BRONZE

@@ -16,53 +16,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.annotation.Bean
 
-//@AutoConfiguration
-//class KraftSpringAuditAutoConfiguration(
-//    private val sqLiteTelemetryProvider: SQLiteTelemetryProvider,
-//    private val applicationEventPublisher: ApplicationEventPublisher
-//) {
-//
-////    @Bean
-////    @ConditionalOnMissingBean
-////    fun kraftSpringLoggingService(): KraftSpringLoggingService {
-////        return KraftSpringLoggingService(
-////            sqLiteTelemetryProvider,
-////            applicationEventPublisher = applicationEventPublisher
-////        )
-////    }
-//
-//    @Bean
-//    @ConditionalOnMissingBean
-//    @ConditionalOnExpression(
-//        "\${kraftpulse.enabled:false} and \${kraftpulse.telemetry-config.enabled:false}"
-//    )
-//    fun kraftSpringLoggingService(sqLiteTelemetryProvider: SQLiteTelemetryProvider): KraftSpringLoggingService {
-//        return KraftSpringLoggingService(
-//            sqLiteTelemetryProvider,
-//            applicationEventPublisher = applicationEventPublisher
-//        )
-//    }
-//
-//    @Bean
-//    @ConditionalOnMissingBean(KraftAdminAuditor::class)
-//    @ConditionalOnExpression("\${kraftpulse.enabled:false} and \${kraftpulse.telemetry-config.enabled:false}")
-//    fun kraftSpringLoggingAuditor(telemetryService: KraftTelemetryService): KraftAdminAuditor {
-//        val factory = LoggerFactory.getILoggerFactory()
-//        if (factory is LoggerContext) {
-//            factory.getLogger("KRAFT_ADMIN_AUDIT").level = Level.INFO
-//        }
-//        // This links the Business Auditor to your SQLite-backed Telemetry Service
-//        return KraftSpringLoggingAuditor(telemetryService)
-//    }
-//
-//    // 2. The FALLBACK auditor (if the real one isn't loaded)
-//    @Bean
-//    @ConditionalOnMissingBean(KraftAdminAuditor::class)
-//    fun noOpKraftAdminAuditor(): KraftAdminAuditor = NoOpKraftAuditor()
-//
-//}
-
-
 @AutoConfiguration
 // REMOVED class-level @ConditionalOnExpression here
 class KraftSpringAuditAutoConfiguration(

@@ -1,12 +1,9 @@
 package config
 
 import com.kraftadmin.BuildInfo
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.NestedConfigurationProperty
-import org.springframework.context.annotation.Primary
 import security.BasicAuthConfig
-import java.util.UUID
 
 @ConfigurationProperties(prefix = "kraftpulse")
 data class KraftPulseSpringKraftAdminProperties(
@@ -28,7 +25,13 @@ data class KraftPulseSpringKraftAdminProperties(
     @NestedConfigurationProperty
     override var localeConfig: SpringLocaleProperties = SpringLocaleProperties(),
     @NestedConfigurationProperty
-    override var telemetryConfig: TelemetryProperties = TelemetryProperties()
+    override var telemetryConfig: TelemetryProperties = TelemetryProperties(),
+    // ✅ New — controls whether/how KraftPulse pushes data into a MeterRegistry.
+    // Entirely additive: defaults preserve current behavior (Micrometer bridge
+    // enabled if a MeterRegistry bean happens to exist; consumer can disable
+    // it explicitly, or scope which event types get pushed).
+    @NestedConfigurationProperty
+    var metricsConfig: MetricsProperties = MetricsProperties()
 ) : KraftAdminPropertiesConfig {
 
     init {
@@ -71,12 +74,12 @@ data class KraftPulseSpringKraftAdminProperties(
     ) : LocaleConfig
 
     class TelemetryProperties(
-        override var cloudUrl: String = "http://localhost:8090", // Ktor Sink
+        override var cloudUrl: String = "http://localhost:8090",
         override var enabled: Boolean = false,
         override var path: String? = ".kraft-telemetry.db",
         override var provider: TelemetryProvider = TelemetryProvider.LOCAL,
         override val apiKey: String? = null,
         override val secretKey: String? = null
-    ) : TelemetryConfig {
-    }
+    ) : TelemetryConfig
+
 }

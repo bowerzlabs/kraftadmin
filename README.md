@@ -23,7 +23,7 @@ At its core, KraftAdmin shifts the burden of building internal tools from manual
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("com.bowerzlabs:kraft-admin:0.1.9-beta")
+    implementation("com.bowerzlabs:kraft-admin:0.1.14-beta")
 }
 ```
 
@@ -32,7 +32,7 @@ dependencies {
 ```groovy
 // build.gradle
 dependencies {
-implementation 'com.bowerzlabs:kraft-admin:0.1.9-beta'
+implementation 'com.bowerzlabs:kraft-admin:0.1.14-beta'
 }
 ```
 
@@ -42,7 +42,7 @@ implementation 'com.bowerzlabs:kraft-admin:0.1.9-beta'
 <dependency>
     <groupId>com.bowerzlabs</groupId>
     <artifactId>kraft-admin</artifactId>
-    <version>0.1.9-beta</version>
+    <version>0.1.14-beta</version>
 </dependency>
 ```
 ---
@@ -73,20 +73,20 @@ implementation 'com.bowerzlabs:kraft-admin:0.1.9-beta'
 
 ## 🛠️ Features: Current vs Planned
 
-| Feature Category | Current (Beta) | Planned (Roadmap) |
-|-----------------|----------------|------------------|
-| **Framework Support** | Spring Boot (Java/Kotlin) | Ktor, Micronaut, Quarkus adapters |
-| **Data Handling** | Dynamic filtering, sorting, global search | Multi-tenant data isolation |
-| **UI/UX** | Dark-mode Svelte SPA, vertical record stacks | Custom theme engine & white-labeling |
-| **Field Types** | 20+ supported types (JSON, Media, Enums) | Drag-and-drop file orchestration |
-| **Compliance** | Basic `BaseEntity` auditing | Advanced local compliance & audit tools |
-| **Extension** | Custom `@FormInputType` annotations | Plugin system for dashboard widgets |
+| Feature Category | Current (Beta) | Planned (Roadmap)                        |
+|-----------------|----------------|------------------------------------------|
+| **Framework Support** | Spring Boot (Java/Kotlin) | Ktor, Micronaut, Quarkus, Spark adapters |
+| **Data Handling** | Dynamic filtering, sorting, global search | Multi-tenant data isolation              |
+| **UI/UX** | Dark-mode Svelte SPA, vertical record stacks | Custom theme engine & white-labeling     |
+| **Field Types** | 20+ supported types (JSON, Media, Enums) | Drag-and-drop file orchestration         |
+| **Compliance** | Basic `BaseEntity` auditing | Advanced local compliance & audit tools  |
+| **Extension** | Custom `@FormInputType` annotations | Plugin system for dashboard widgets      |
 
 ---
 
 ## ⚙️ Configuration
 
-KraftAdmin can be configured using either **`application.properties`** or **`application.yml`** depending on your Spring Boot setup.
+KraftAdmin can be configured using either **`application.properties`** or **`application.yml`** depending on your parent application setup.
 
 ---
 

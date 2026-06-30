@@ -2,10 +2,8 @@ package util
 
 import analytics.AnalyticsReader
 import analytics.TelemetryWithQueries
-import com.kraftadmin.model.ClickHouseTelemetryBatch
 import config.KraftPulseSpringKraftAdminProperties
 import config.TelemetryProvider
-import io.micrometer.core.instrument.MeterRegistry
 import json.KraftJsonSerializer
 import model.KraftHttpClientEvent
 import model.KraftTaskEvent
@@ -16,8 +14,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.web.client.RestTemplate
-import telemetry.KraftTelemetryEvent
-import telemetry.MicrometerTelemetryBridge
+import com.kraftadmin.model.KraftTelemetryEvent
 import telemetry.SQLiteTelemetryProvider
 import java.util.concurrent.ConcurrentLinkedQueue
 

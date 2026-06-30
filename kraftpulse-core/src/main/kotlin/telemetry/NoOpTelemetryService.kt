@@ -2,9 +2,11 @@ package telemetry
 
 
 import analytics.TelemetryWithQueries
+import com.kraftadmin.model.KraftTelemetryEvent
 import model.KraftHttpClientEvent
 import model.KraftTaskEvent
 import model.PulseExceptionEntry
+import model.QueryEvent
 
 /**
  * A silent placeholder for when telemetry is disabled.
@@ -27,6 +29,10 @@ class NoOpTelemetryService : KraftTelemetryService {
     }
 
     override fun recordHttpClientEvent(event: KraftHttpClientEvent) {
+    }
+
+    override fun recordQueryEvent(event: QueryEvent) {
+        TODO("Not yet implemented")
     }
 
     override fun getDashboardOverview(limit: Int): List<TelemetryWithQueries> {

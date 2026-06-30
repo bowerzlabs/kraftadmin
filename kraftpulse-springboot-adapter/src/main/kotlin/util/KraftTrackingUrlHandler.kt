@@ -1,19 +1,19 @@
-package telemetry.http
+package util
 
 import interceptor.PulseTelemetryCaptor
 import model.KraftHttpClientEvent
-import util.PulseContextHolder
+import java.io.InputStream
 import java.net.URL
 import java.net.URLConnection
 import java.net.URLStreamHandler
 import java.lang.reflect.Method
+import java.net.HttpURLConnection
 
 class KraftTrackingUrlHandler(
     private val delegate: URLStreamHandler,
     private val captor: PulseTelemetryCaptor
 ) : URLStreamHandler() {
 
-    // Safely reflectively grab the protected openConnection method from the base Java class
     private val openConnectionMethod: Method = try {
         URLStreamHandler::class.java.getDeclaredMethod("openConnection", URL::class.java).apply {
             isAccessible = true
@@ -23,53 +23,37 @@ class KraftTrackingUrlHandler(
     }
 
     override fun openConnection(url: URL): URLConnection {
-        // Force access to the protected delegate method via reflection invocation
         val connection = openConnectionMethod.invoke(delegate, url) as URLConnection
-
         val startTime = System.currentTimeMillis()
         val currentTraceId = PulseContextHolder.get()?.traceId ?: "outbound-standalone"
 
-        // Prevent tracing loops when shipping metrics out to your ClickHouse/Cloud sink
-        if (url.path.contains("/api/telemetry/ingest")) {
-            return connection
-        }
+        if (url.path.contains("/api/telemetry/ingest")) return connection
 
-        // Return a tracked wrapper that executes metric captures on lifecycle termination/disconnect
-        return object : java.net.URLConnection(url) {
-            override fun connect() {
-                connection.connect()
-            }
+        return object : URLConnection(url) {
+            override fun connect() = connection.connect()
 
-            override fun getInputStream(): java.io.InputStream = try {
+            override fun getInputStream(): InputStream = try {
                 val stream = connection.getInputStream()
-                recordSuccess()
+                record(true, null)
                 stream
             } catch (e: Exception) {
-                recordFailure(e)
+                record(false, e)
                 throw e
             }
 
-            private fun recordSuccess() {
-                val duration = System.currentTimeMillis() - startTime
+            private fun record(success: Boolean, ex: Exception?) {
+                val httpConn = connection as? HttpURLConnection
                 captor.recordOutboundHttp(
                     KraftHttpClientEvent(
                         traceId = currentTraceId,
+                        host = url.host ?: "unknown",
                         url = url.toString(),
-                        method = "HTTP-CALL", // Protocol agnostic fallback
-                        statusCode = 200,
-                        durationMs = duration
-                    )
-                )
-            }
-
-            private fun recordFailure(ex: Exception) {
-                captor.recordOutboundHttp(
-                    KraftHttpClientEvent(
-                        traceId = currentTraceId,
-                        url = url.toString(),
-                        method = "HTTP-CALL",
-                        statusCode = 500,
-                        durationMs = System.currentTimeMillis() - startTime
+                        method = httpConn?.requestMethod ?: "GET",
+                        statusCode = if (success) (httpConn?.responseCode ?: 200) else 500,
+                        durationMs = System.currentTimeMillis() - startTime,
+                        responseBodySize = connection.contentLengthLong.coerceAtLeast(0),
+                        connectionTimeoutMs = connection.connectTimeout.toLong(),
+                        errorMessage = ex?.message
                     )
                 )
             }

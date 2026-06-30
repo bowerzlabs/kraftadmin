@@ -4,7 +4,7 @@
 
 [versions]
 kotlin = "1.9.25"
-#kotlin = "2.0.21"
+#kotlin = "2.2.21"
 kotlinxDatetime = "0.6.2"
 kotlinxSerializationJSON = "1.8.1"
 kotlinxCoroutines = "1.10.2"

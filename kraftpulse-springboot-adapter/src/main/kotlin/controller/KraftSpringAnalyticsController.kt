@@ -1,6 +1,6 @@
 package controller
 
-import analytics.AnalyticsProvider
+import analytics.AnalyticsReader
 import analytics.LatencyReport
 import analytics.ResourceStats
 import analytics.SortMetric
@@ -19,7 +19,7 @@ import java.time.temporal.ChronoUnit
     "\${kraftpulse.enabled:false} and \${kraftpulse.telemetry-config.enabled:false}"
 )
 class KraftSpringAnalyticsController(
-    private val analyticsProvider: AnalyticsProvider
+    private val analyticsReader: AnalyticsReader
 ) {
 
 
@@ -32,7 +32,7 @@ class KraftSpringAnalyticsController(
         @RequestParam(defaultValue = "HOURLY") interval: TimeInterval
     ): List<TrafficPoint> {
         val range = TimeRange(Instant.now().minus(hours.toLong(), ChronoUnit.HOURS), Instant.now())
-        return analyticsProvider.getTrafficTrend(interval, range, TelemetryFilter())
+        return analyticsReader.getTrafficTrend(interval, range, TelemetryFilter())
     }
 
     /**
@@ -44,7 +44,7 @@ class KraftSpringAnalyticsController(
         @RequestParam(defaultValue = "24") hours: Int
     ): LatencyReport {
         val range = TimeRange(Instant.now().minus(hours.toLong(), ChronoUnit.HOURS), Instant.now())
-        return analyticsProvider.getLatencyPercentiles(resource, range)
+        return analyticsReader.getLatencyPercentiles(resource, range)
     }
 
     /**
@@ -55,7 +55,7 @@ class KraftSpringAnalyticsController(
         @RequestParam(defaultValue = "10") limit: Int,
         @RequestParam(defaultValue = "REQUEST_COUNT") sortBy: SortMetric
     ): List<ResourceStats> {
-        return analyticsProvider.getTopResources(limit, sortBy)
+        return analyticsReader.getTopResources(limit, sortBy)
     }
 
     /**
@@ -63,7 +63,7 @@ class KraftSpringAnalyticsController(
      */
     @GetMapping("/distribution/status")
     fun getStatusDistribution(@RequestParam(required = false) resource: String?): Map<Int, Long> {
-        return analyticsProvider.getStatusBreakdown(TelemetryFilter(resource = resource))
+        return analyticsReader.getStatusBreakdown(TelemetryFilter(resource = resource))
     }
 
 }

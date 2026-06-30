@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service
 
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
-import telemetry.KraftTelemetryEvent
-import telemetry.TelemetryType
+import com.kraftadmin.model.KraftTelemetryEvent
+import com.kraftadmin.model.TelemetryType
 
 @Service
 @ConditionalOnExpression(
