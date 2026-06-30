@@ -41,7 +41,7 @@ object KraftPulse {
     /**
      * Captures an exception and maps it to the 7-day monitoring sink.
      */
-    fun recordException(ex: Throwable, metadata: Map<String, Any?> = emptyMap()) {
+    fun recordException1(ex: Throwable, metadata: Map<String, Any?> = emptyMap()) {
         if (!started) return
 
         val currentContext = contextThreadLocal.get()
@@ -62,7 +62,46 @@ object KraftPulse {
             method = metadata["method"] as? String ?: "N/A",
             statusCode = statusCode,
             timestamp = System.currentTimeMillis(),
-            metadata = metadata
+            metadata = metadata,
+            stackSummary = ex.stackTrace.take(5).joinToString("\n") { it.toString() },
+            requestHeaders = (metadata["headers"] as? Map<String, String>) ?: emptyMap(),
+            queryParams = (metadata["params"] as? Map<String, List<String>>) ?: emptyMap(),
+            hostName = System.getProperty("host.name") ?: System.getenv("HOSTNAME") ?: "unknown-host",
+            environment = System.getProperty("app.env") ?: "production",
+            version = System.getProperty("app.version") ?: "1.0.0",
+            isHandled = (metadata["handled"] as? Boolean) ?: false
+        )
+
+        sink.recordException(entry)
+    }
+
+    fun recordException(ex: Throwable, metadata: Map<String, Any?> = emptyMap()) {
+        if (!started) return
+
+        val currentContext = contextThreadLocal.get()
+        val statusCode = (metadata["status_code"] as? Int) ?: 500
+
+        val entry = PulseExceptionEntry(
+            id = UUID.randomUUID().toString(),
+            traceId = currentContext?.traceId ?: "standalone-${System.currentTimeMillis()}",
+            tenantId = currentContext?.tenantId,
+            userId = currentContext?.userId,
+            exceptionClass = ex.javaClass.name,
+            message = ex.message ?: "No message",
+            stackTrace = ex.stackTraceToString(),
+            path = metadata["path"] as? String ?: "internal",
+            method = metadata["method"] as? String ?: "N/A",
+            statusCode = statusCode,
+            timestamp = System.currentTimeMillis(),
+            metadata = metadata,
+            // --- Finished TODOs ---
+            stackSummary = ex.stackTrace.take(5).joinToString("\n") { it.toString() },
+            requestHeaders = (metadata["headers"] as? Map<String, String>) ?: emptyMap(),
+            queryParams = (metadata["params"] as? Map<String, List<String>>) ?: emptyMap(),
+            hostName = System.getProperty("host.name") ?: System.getenv("HOSTNAME") ?: "unknown-host",
+            environment = System.getProperty("app.env") ?: "production",
+            version = System.getProperty("app.version") ?: "1.0.0",
+            isHandled = (metadata["handled"] as? Boolean) ?: false
         )
 
         sink.recordException(entry)
