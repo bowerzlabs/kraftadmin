@@ -63,7 +63,8 @@ class KraftTelemetryAutoConfiguration(
         val path = properties.telemetryConfig.path ?: ".kraft-telemetry.db"
         val provider = SQLiteTelemetryProvider(
             appName = environment.getProperty("spring.application.name") ?: "KraftPulse",
-            serializer = kraftPulseJsonSerializer()
+            serializer = kraftPulseJsonSerializer(),
+            enabled = true
         )
         provider.onEventPersisted = { event -> publisher.publishEvent(event) }
         return provider
