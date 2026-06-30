@@ -21,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ✅ needed — full history so we can diff against the previous tag
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -30,8 +32,15 @@ jobs:
 
       - name: Inject Release Version
         run: |
-          echo "version=${{ github.event.inputs.release_version }}" > gradle.properties
-          echo "Injected version: $(cat gradle.properties)"
+          if grep -q "^version=" gradle.properties; then
+            sed -i "s/^version=.*/version=${{ github.event.inputs.release_version }}/" gradle.properties
+          else
+            echo "version=${{ github.event.inputs.release_version }}" >> gradle.properties
+          fi
+          echo "Injected version: $(grep '^version=' gradle.properties)"
+
+      - name: Run tests
+        run: ./gradlew :kraft-pulse:test :kraft-admin:test
 
       - name: Stage kraft-pulse artifacts
         run: ./gradlew :kraft-pulse:publishMavenJavaPublicationToStagingDirRepository
@@ -77,6 +86,42 @@ jobs:
             "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC")
           echo "kraft-admin Deployment ID: $RESPONSE"
 
+      # ✅ New — derive a changelog from commits since the last tag, grouped by module
+      - name: Derive changelog from commits
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found — including full history."
+            RANGE="HEAD"
+          else
+            echo "Previous tag: $PREVIOUS_TAG"
+            RANGE="$PREVIOUS_TAG..HEAD"
+          fi
+
+          {
+            echo "changelog<<EOF"
+            echo "## What's Changed"
+            echo ""
+
+            echo "### kraft-pulse"
+            git log "$RANGE" --pretty=format:"- %s (%h)" -- kraft-pulse/ || echo "- No changes"
+            echo ""
+            echo ""
+
+            echo "### kraft-admin"
+            git log "$RANGE" --pretty=format:"- %s (%h)" -- kraft-admin/ || echo "- No changes"
+            echo ""
+            echo ""
+
+            echo "### Other"
+            git log "$RANGE" --pretty=format:"- %s (%h)" -- . ":!kraft-pulse" ":!kraft-admin" || echo "- No changes"
+            echo ""
+
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       # Step 1: Create release as draft so it is mutable
       - name: Create draft release
         id: create_release
@@ -84,7 +129,7 @@ jobs:
         with:
           tag_name: v${{ github.event.inputs.release_version }}
           name: Release v${{ github.event.inputs.release_version }}
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.changelog }}
           draft: true
           prerelease: ${{ github.event.inputs.is_prerelease }}
           files: |
