@@ -16,7 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import java.util.UUID
 
 @Aspect
-@Component
+//@Component
 @ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true", matchIfMissing = false)
 class KraftScheduledTaskAspect(
     private val captor: PulseTelemetryCaptor

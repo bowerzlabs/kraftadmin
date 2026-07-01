@@ -4,6 +4,7 @@ import analytics.AnalyticsReader
 import analytics.CloudAnalyticsProvider
 import analytics.LocalAnalyticsProvider
 import analytics.TelemetryWriter
+import interceptor.PulseTelemetryCaptor
 import json.KraftJsonSerializer
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
@@ -17,6 +18,7 @@ import org.springframework.core.env.Environment
 import org.springframework.http.client.ClientHttpRequestInterceptor
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.web.client.RestTemplate
+import security.SecurityProviderChain
 import telemetry.KraftTelemetryService
 import telemetry.NoOpTelemetryService
 import telemetry.SQLiteTelemetryProvider
@@ -117,6 +119,12 @@ class KraftTelemetryAutoConfiguration(
 //            restTemplate = telemetryRestTemplate
 //        )
 //    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "kraftpulse", name = ["enabled"], havingValue = "true")
+    fun kraftScheduledTaskAspect(captor: PulseTelemetryCaptor): KraftScheduledTaskAspect {
+        return KraftScheduledTaskAspect(captor)
+    }
 
     @Bean(name = ["kraftTelemetryExecutor"])
     @ConditionalOnExpression(

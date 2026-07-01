@@ -181,7 +181,7 @@ import util.KraftSpringLoggingService
     KraftSpringAuditAutoConfiguration::class,
     KraftAdminSpringSecurityConfig::class,
     JpaPulseAutoconfiguration::class,
-    KraftScheduledTaskAspect::class,
+//    KraftScheduledTaskAspect::class,
     KraftPulseSchedulingAutoconfiguration::class
 )
 @EnableConfigurationProperties(KraftPulseSpringKraftAdminProperties::class)
