@@ -72,11 +72,13 @@ class KraftTelemetryAutoConfiguration(
 
     // Always available — this is the durable write path regardless of provider
     @Bean
+    @ConditionalOnMissingBean(name = ["telemetryWriter"])
     fun localAnalyticsProvider(sqLiteTelemetryProvider: SQLiteTelemetryProvider): LocalAnalyticsProvider {
         return LocalAnalyticsProvider(sqLiteTelemetryProvider)
     }
 
     @Bean
+    @Primary
     fun telemetryWriter(local: LocalAnalyticsProvider): TelemetryWriter = local
 
 
