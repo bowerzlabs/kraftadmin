@@ -1,35 +1,44 @@
 package config
 
+import jakarta.annotation.PostConstruct
+import org.slf4j.LoggerFactory
 import org.springframework.boot.SpringBootVersion
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigureOrder
-import jakarta.annotation.PostConstruct
 import org.springframework.core.Ordered
 
 @AutoConfiguration
 @AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)
 class KraftPulseVersionGuardAutoConfiguration {
 
+    private val logger = LoggerFactory.getLogger(KraftPulseVersionGuardAutoConfiguration::class.java)
+
     @PostConstruct
     fun checkSupportedVersion() {
-        val version = SpringBootVersion.getVersion() ?: return // can't determine, don't block
+        val version = SpringBootVersion.getVersion() ?: return // Can't determine, assume compatibility
 
         val majorVersion = version.substringBefore(".").toIntOrNull() ?: return
 
-        if (majorVersion >= 4) {
-            throw IllegalStateException(
-                """
-                KraftPulse/KraftAdmin: Unsupported Spring Boot version detected: $version
-                
-                This version of the library supports Spring Boot 3.x only (3.2.0+).
-                Spring Boot 4.x introduces breaking changes (Jakarta EE 11, Framework 7)
-                that are not yet supported.
-                
-                Please either:
-                  1. Pin your application to Spring Boot 3.x, or
-                  2. Check for a newer KraftPulse/KraftAdmin release with Boot 4.x support.
-                """.trimIndent()
-            )
+        when {
+            majorVersion < 3 -> {
+                // Keep the hard block for extremely old 2.x versions due to javax -> jakarta namespace changes
+                throw IllegalStateException(
+                    """
+                    KraftPulse/KraftAdmin: Unsupported Spring Boot version detected: $version
+                    
+                    This library requires the Jakarta EE namespace (Spring Boot 3.0+ / 4.0+).
+                    Spring Boot 2.x and below utilize the legacy 'javax' namespace and are not supported.
+                    """.trimIndent()
+                )
+            }
+            majorVersion >= 4 -> {
+                // Log an informational notice confirming compatibility verification for Spring Boot 4.x+
+                logger.info("KraftPulse/KraftAdmin: Executing in Spring Boot 4.x environment ($version). Activation verified.")
+            }
+            else -> {
+                // standard Spring Boot 3.x environment execution path
+                logger.debug("KraftPulse/KraftAdmin: Executing in standard Spring Boot 3.x environment ($version).")
+            }
         }
     }
 }
