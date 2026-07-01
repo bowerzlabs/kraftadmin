@@ -79,23 +79,6 @@ class KraftTelemetryAutoConfiguration(
     @Bean
     fun telemetryWriter(local: LocalAnalyticsProvider): TelemetryWriter = local
 
-    // Reader switches based on config — local SQLite or cloud ClickHouse-backed API
-    @Bean
-    @Primary
-    fun analyticsReader(
-        local: LocalAnalyticsProvider,
-        kraftJsonSerializer: KraftJsonSerializer
-    ): AnalyticsReader {
-        return when (properties.telemetryConfig.provider) {
-            TelemetryProvider.LOCAL -> local
-            TelemetryProvider.CLOUD -> CloudAnalyticsProvider(
-                apiKey = properties.telemetryConfig.apiKey ?: "",
-                secretKey = properties.telemetryConfig.secretKey ?: "",
-                serializer = kraftJsonSerializer,
-                baseUrl = properties.telemetryConfig.cloudUrl ?: "http://localhost:8090"
-            )
-        }
-    }
 
     @Bean
     @Primary
@@ -103,35 +86,33 @@ class KraftTelemetryAutoConfiguration(
     fun telemetryService(
         kraftJsonSerializer: KraftJsonSerializer,
         provider: SQLiteTelemetryProvider,
-        analyticsReader: AnalyticsReader, // ✅ renamed — read-only, used for dashboard queries
-        telemetryRestTemplate: RestTemplate,
+        analyticsReader: AnalyticsReader,
+        telemetryRestTemplate: RestTemplate
     ): KraftTelemetryService {
         return SpringBootTelemetryService(
             properties = properties,
             serializer = kraftJsonSerializer,
             commonStore = provider,
-            analyticsReader = analyticsReader, // ✅ only used for reads now
+            analyticsReader = analyticsReader,
             restTemplate = telemetryRestTemplate
         )
     }
 
 //    @Bean
 //    @Primary
-//    @ConditionalOnExpression(
-//        "\${kraftpulse.enabled:true} and \${kraftpulse.telemetry-config.enabled:true}"
-//    )
+//    @ConditionalOnExpression("\${kraftpulse.enabled:true} and \${kraftpulse.telemetry-config.enabled:true}")
 //    fun telemetryService(
 //        kraftJsonSerializer: KraftJsonSerializer,
 //        provider: SQLiteTelemetryProvider,
-//        analyticsProvider: AnalyticsProvider,
-//        telemetryRestTemplate: RestTemplate // Inject the secure RestTemplate here
+//        analyticsReader: AnalyticsReader, // ✅ renamed — read-only, used for dashboard queries
+//        telemetryRestTemplate: RestTemplate,
 //    ): KraftTelemetryService {
 //        return SpringBootTelemetryService(
 //            properties = properties,
 //            serializer = kraftJsonSerializer,
 //            commonStore = provider,
-//            analyticsProvider = analyticsProvider,
-//            restTemplate = telemetryRestTemplate // Pass it along
+//            analyticsReader = analyticsReader, // ✅ only used for reads now
+//            restTemplate = telemetryRestTemplate
 //        )
 //    }
 
@@ -157,10 +138,14 @@ class KraftTelemetryAutoConfiguration(
     @Primary
     fun kraftPulseJsonSerializer(): KraftJsonSerializer = JacksonKraftJsonSerializer()
 
+    /**
+     * This is the single source of truth for the AnalyticsReader.
+     * It handles the switch between LOCAL and CLOUD automatically.
+     */
     @Bean
     @ConditionalOnProperty(prefix = "kraftpulse.telemetry-config", name = ["enabled"], havingValue = "true", matchIfMissing = false)
     @ConditionalOnMissingBean(AnalyticsReader::class)
-    fun analyticsProvider(sqliteProvider: SQLiteTelemetryProvider?): AnalyticsReader {
+    fun analyticsReader(sqliteProvider: SQLiteTelemetryProvider?): AnalyticsReader {
         val config = properties.telemetryConfig
         val providerType = config.provider ?: TelemetryProvider.LOCAL
 
