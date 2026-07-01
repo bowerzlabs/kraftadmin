@@ -3,13 +3,14 @@ package telemetry.telemetry
 import org.flywaydb.core.api.migration.BaseJavaMigration
 import org.flywaydb.core.api.migration.Context
 
-class InitSqliteDB : BaseJavaMigration() {
+@Suppress("ClassName")
+class V1__InitSqliteDB : BaseJavaMigration() {
 
     override fun migrate(context: Context) {
         context.connection.createStatement().use { statement ->
-            // 1. Create Tables
+            // 1. Create Tables using IF NOT EXISTS
             statement.execute("""
-                CREATE TABLE kraft_http_client_events (
+                CREATE TABLE IF NOT EXISTS kraft_http_client_events (
                     id TEXT PRIMARY KEY,
                     trace_id TEXT NOT NULL,
                     host TEXT,
@@ -25,7 +26,7 @@ class InitSqliteDB : BaseJavaMigration() {
                     synced INTEGER DEFAULT 0
                 );
 
-                CREATE TABLE kraft_tasks (
+                CREATE TABLE IF NOT EXISTS kraft_tasks (
                     id TEXT PRIMARY KEY,
                     trace_id TEXT NOT NULL,
                     name TEXT,
@@ -43,7 +44,7 @@ class InitSqliteDB : BaseJavaMigration() {
                     synced INTEGER DEFAULT 0
                 );
 
-                CREATE TABLE kraft_telemetry (
+                CREATE TABLE IF NOT EXISTS kraft_telemetry (
                     id TEXT PRIMARY KEY,
                     trace_id TEXT,
                     type TEXT,
@@ -64,7 +65,7 @@ class InitSqliteDB : BaseJavaMigration() {
                     synced INTEGER DEFAULT 0
                 );
 
-                CREATE TABLE kraft_exceptions (
+                CREATE TABLE IF NOT EXISTS kraft_exceptions (
                     id TEXT PRIMARY KEY,
                     trace_id TEXT NOT NULL,
                     tenant_id TEXT,
@@ -88,7 +89,7 @@ class InitSqliteDB : BaseJavaMigration() {
                     synced INTEGER DEFAULT 0
                 );
 
-                CREATE TABLE kraft_query_events (
+                CREATE TABLE IF NOT EXISTS kraft_query_events (
                     id TEXT PRIMARY KEY,
                     trace_id TEXT NOT NULL,
                     sql TEXT,
@@ -120,16 +121,16 @@ class InitSqliteDB : BaseJavaMigration() {
                 );
             """.trimIndent())
 
-            // 2. Create Indexes
+            // 2. Create Indexes using IF NOT EXISTS
             statement.execute("""
-                CREATE INDEX idx_http_client_trace ON kraft_http_client_events(trace_id);
-                CREATE INDEX idx_http_client_created ON kraft_http_client_events(created_at, synced);
-                CREATE INDEX idx_telemetry_trace ON kraft_telemetry(trace_id);
-                CREATE INDEX idx_telemetry_sync ON kraft_telemetry(synced, created_at);
-                CREATE INDEX idx_query_trace ON kraft_query_events(trace_id);
-                CREATE INDEX idx_query_sync ON kraft_query_events(synced, created_at);
-                CREATE INDEX idx_exc_trace ON kraft_exceptions(trace_id);
-                CREATE INDEX idx_task_trace ON kraft_tasks(trace_id);
+                CREATE INDEX IF NOT EXISTS idx_http_client_trace ON kraft_http_client_events(trace_id);
+                CREATE INDEX IF NOT EXISTS idx_http_client_created ON kraft_http_client_events(created_at, synced);
+                CREATE INDEX IF NOT EXISTS idx_telemetry_trace ON kraft_telemetry(trace_id);
+                CREATE INDEX IF NOT EXISTS idx_telemetry_sync ON kraft_telemetry(synced, created_at);
+                CREATE INDEX IF NOT EXISTS idx_query_trace ON kraft_query_events(trace_id);
+                CREATE INDEX IF NOT EXISTS idx_query_sync ON kraft_query_events(synced, created_at);
+                CREATE INDEX IF NOT EXISTS idx_exc_trace ON kraft_exceptions(trace_id);
+                CREATE INDEX IF NOT EXISTS idx_task_trace ON kraft_tasks(trace_id);
             """.trimIndent())
         }
     }

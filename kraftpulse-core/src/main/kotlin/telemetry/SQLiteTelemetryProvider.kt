@@ -11,7 +11,7 @@ import model.QueryEvent
 import org.flywaydb.core.Flyway
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import telemetry.telemetry.InitSqliteDB
+import telemetry.telemetry.V1__InitSqliteDB
 import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
@@ -65,7 +65,7 @@ class SQLiteTelemetryProvider(
     private fun migrateSchema(path: String) {
         val flyway = Flyway.configure()
             .dataSource("jdbc:sqlite:$path", null, null)
-            .javaMigrations(InitSqliteDB())
+            .javaMigrations(V1__InitSqliteDB())
             .baselineOnMigrate(true)
             .load()
 
