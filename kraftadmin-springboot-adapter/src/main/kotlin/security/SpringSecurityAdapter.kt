@@ -6,6 +6,9 @@ import com.kraftadmin.security.AdminRequest
 import com.kraftadmin.security.AdminResponse
 import com.kraftadmin.security.AdminSecurityProvider
 import com.kraftadmin.security.AdminUserDTO
+import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.authentication.BadCredentialsException
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.AuthenticatedPrincipal
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
@@ -28,9 +31,14 @@ import org.springframework.security.core.userdetails.UserDetails
  * not in this adapter. Do not add role filtering here; keep authentication
  * and authorization as separate, independently testable steps.
  */
-class SpringSecurityAdapter : AdminSecurityProvider {
+class SpringSecurityAdapter(
+    private val authenticationManager: AuthenticationManager? = null,
+) : AdminSecurityProvider {
     private val logger = KraftAdminLogging.logger(javaClass)
 
+    init {
+        logger.info("using springsecurity adapter to authenticate")
+    }
 
     override val priority: Int = 10
 
@@ -112,4 +120,35 @@ class SpringSecurityAdapter : AdminSecurityProvider {
             raw = auth
         )
     }
+
+    override fun authenticateCredentials(username: String, password: String): AdminUserDTO? {
+        val manager = authenticationManager ?: run {
+            logger.debug("No AuthenticationManager available — this host may rely on redirect-only SSO, which SpringSecurityAdapter cannot service directly.")
+            return null
+        }
+
+        return try {
+            val result: Authentication = manager.authenticate(
+                UsernamePasswordAuthenticationToken(username, password)
+            )
+            if (!result.isAuthenticated) return null
+
+            val roles = result.authorities.map { it.authority }.toSet()
+            logger.info("Credential login succeeded for '{}' against host AuthenticationManager", result.name)
+
+            AdminPrincipalMapper.toDTO(
+                AdminPrincipal(username = extractUsername(result), roles = roles, raw = result)
+            )
+        } catch (e: BadCredentialsException) {
+            logger.warn("Credential login failed for '{}': bad credentials", username)
+            null
+        } catch (e: Exception) {
+            // Covers UsernameNotFoundException, DisabledException, LockedException,
+            // etc. — all mean "the parent app says this login isn't valid,"
+            // regardless of which AuthenticationProvider raised it.
+            logger.warn("Credential login failed for '{}': {}", username, e.message)
+            null
+        }
+    }
+
 }

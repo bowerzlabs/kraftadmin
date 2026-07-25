@@ -10,3 +10,4 @@ controller.KraftSettingsController
 controller.KraftAdminSpringbootAuthController
 controller.KraftAdminSpringbootMetaController
 controller.KraftAdminEventController
+config.KraftAdminWebSecurityConfig

@@ -17,19 +17,8 @@ class SecurityProviderResolver(
 ) {
     fun resolve(): SecurityProviderChain {
         val providers = mutableListOf<AdminSecurityProvider>()
-
-        // 1. custom provider — explicit always wins
         config.customProvider?.let { providers += it }
-
-        // 2. framework adapter — supplied by the adapter module at wiring time
-        config.frameworkAdapterFactory
-            ?.takeIf { isFrameworkSecurityActive() }
-            ?.invoke()
-            ?.let { providers += it }
-
-        // 3. built-in fallback — always present as last resort
-        providers.plusAssign(BuiltinBasicAuthProvider(config.basicAuth))
-
+        providers += BuiltinBasicAuthProvider(config.basicAuth)
         return SecurityProviderChain(providers)
     }
 

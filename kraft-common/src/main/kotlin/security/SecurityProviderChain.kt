@@ -34,4 +34,18 @@ class SecurityProviderChain(providers: List<AdminSecurityProvider>) {
     fun resolveCurrentUser(): AdminUserDTO? {
         return chain.firstNotNullOfOrNull { it.getCurrentUser()?.toDTO() }
     }
+
+    /**
+     * Tries each provider's authenticateCredentials in priority order.
+     * The FIRST provider that recognizes and validates the credentials
+     * wins — the caller (login controller) never branches on auth mode
+     * itself. A provider returns null either because it doesn't support
+     * credential login (e.g. SSO-redirect-only) or because the specific
+     * credentials were rejected; both cases fall through to the next
+     * provider, and null overall means "no provider could authenticate
+     * this login."
+     */
+    fun authenticateCredentials(username: String, password: String): AdminUserDTO? =
+        chain.firstNotNullOfOrNull { it.authenticateCredentials(username, password) }
+
 }

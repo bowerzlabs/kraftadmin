@@ -3,7 +3,6 @@ package com.kraftadmin.security
 
 class SessionSecurityProvider(
     private val sessionStore: AdminSessionStore,
-    private val cookieName: String = "adminlib_session",
     override val priority: Int = 0 // Should be high priority to catch existing sessions first
 ) : AdminSecurityProvider {
 
