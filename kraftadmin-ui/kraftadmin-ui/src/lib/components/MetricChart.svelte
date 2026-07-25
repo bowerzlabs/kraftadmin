@@ -114,19 +114,21 @@
   {#if hasData}
 
     {#if metric.chartType === 'BAR'}
-      <div class="flex items-end gap-2 h-48">
-        {#each series as item}
-          <div class="flex-1 h-full flex flex-col justify-end gap-2">
-            <div
-              class="w-full bg-brand-primary rounded-t-lg transition-all duration-300 hover:opacity-80"
-              style={`height: ${(item.value / maxValue) * 100}%`}
-              title={`${item.label}: ${formatValue(item.value)}`}
-            ></div>
-            <span class="text-[9px] text-text-muted text-center truncate">
-              {item.label}
-            </span>
-          </div>
-        {/each}
+      <div class="h-48 overflow-x-auto overflow-y-hidden">
+        <div class="flex items-end gap-2 h-full min-w-full" style={`width: ${Math.max(series.length * 56, 100)}px`}>
+          {#each series as item}
+            <div class="flex-1 min-w-[48px] h-full flex flex-col justify-end gap-2">
+              <div
+                      class="w-full bg-brand-primary rounded-t-lg transition-all duration-300 hover:opacity-80"
+                      style={`height: ${(item.value / maxValue) * 100}%`}
+                      title={`${item.label}: ${formatValue(item.value)}`}
+              ></div>
+              <span class="text-[9px] text-text-muted text-center truncate">
+            {item.label}
+          </span>
+            </div>
+          {/each}
+        </div>
       </div>
 
     {:else}
