@@ -23,8 +23,6 @@ class KraftSettingsController(
      * GET the current merged configuration.
      * Svelte calls this to populate the "Settings" forms.
      */
-
-
     @GetMapping
     fun getSettings(): ResponseEntity<PublicKraftAdminSettings> =
         ResponseEntity.ok(settingsService.getPublicSettings())

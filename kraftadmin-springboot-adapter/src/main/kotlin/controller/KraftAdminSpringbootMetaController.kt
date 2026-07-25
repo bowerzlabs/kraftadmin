@@ -42,38 +42,6 @@ class KraftAdminSpringbootMetaController(
 ) {
     private val logger = KraftAdminLogging.logger(javaClass)
 
-//    @GetMapping("/dashboard")
-//    fun getDashboardOverview(): ResponseEntity<KraftDashboardResponse> {
-//        val resourceNames = descriptorFactory.getRegisteredResourceNames()
-//
-//        val totalEntitiesCount = resourceNames.sumOf { name ->
-//            descriptorFactory.getTotalCountForResource(name)
-//        }
-//
-//        val stats = listOf(
-//            DashboardStat("Total Managed Records", totalEntitiesCount.toString(), "database"),
-//            DashboardStat("Resources Registered", resourceNames.size.toString(), "layers"),
-//            DashboardStat("Active Sessions", "1", "users")
-//        )
-//
-//        val libraryFeatures = checkFeatureStatus()
-//
-//        val response = KraftDashboardResponse(
-//            title = properties.title,
-//            welcomeMessage = "Welcome to the ${properties.title} admin dashboard.",
-//            stats = stats,
-//            features = libraryFeatures,
-//            systemStatus = SystemStatus(
-//                environment = "Development",
-//                databaseType = "H2 / R2DBC",
-//                totalEntitiesTracked = resourceNames.size
-//            )
-//        )
-//
-//        return ResponseEntity.ok(response)
-//    }
-
-
     @GetMapping("/dashboard")
     fun getDashboardOverview(): ResponseEntity<KraftDashboardResponse> {
         val resourceNames = descriptorFactory.getRegisteredResourceNames()
