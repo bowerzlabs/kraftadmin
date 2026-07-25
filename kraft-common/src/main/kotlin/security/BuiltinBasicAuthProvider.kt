@@ -86,6 +86,11 @@ class BuiltinBasicAuthProvider(
         response.setBody("Unauthorized")
     }
 
+    override fun authenticateCredentials(username: String, password: String): AdminUserDTO? {
+        if (username != this.username || password != this.password) return null
+        return AdminPrincipal(username = username, roles = setOf("ROLE_ADMIN")).toDTO()
+    }
+
     private fun autoGenerate(user: String): String {
         val pwd = UUID.randomUUID().toString().take(12)
         // This only prints if effectivePassword is accessed (i.e., when this provider is active)
