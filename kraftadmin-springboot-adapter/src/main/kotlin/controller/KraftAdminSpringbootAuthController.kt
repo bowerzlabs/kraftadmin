@@ -37,7 +37,6 @@ import java.util.*
  */
 @RestController
 @RequestMapping("\${kraftadmin.base-path:/admin}/api/auth")
-@Conditional(NoFrameworkSecurityCondition::class)
 @ConditionalOnProperty(prefix = "kraftadmin", name = ["enabled"], havingValue = "true")
 class KraftAdminSpringbootAuthController(
     private val chain: SecurityProviderChain,
@@ -46,31 +45,22 @@ class KraftAdminSpringbootAuthController(
 ) {
     private val logger = KraftAdminLogging.logger(javaClass)
 
-
     @PostMapping("/login")
     fun login(
         @RequestBody credentials: LoginRequest,
         request: HttpServletRequest,
         response: HttpServletResponse,
     ): ResponseEntity<Map<String, String>> {
-        val adminRequest = AdminRequest(
-            method = "POST",
-            path = request.requestURI,
-            headers = mapOf(
-                "Authorization" to basicAuthHeader(credentials.username, credentials.password),
-            ),
-        )
 
-        val principal = chain.authenticate(adminRequest)
-        logger.info("principal $principal")
+        val principal = chain.authenticateCredentials(credentials.username, credentials.password)
 
         if (principal == null) {
             logger.warn("Failed login attempt for username '{}'", credentials.username)
-            return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(mapOf("error" to "Invalid credentials"))
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("error" to "Invalid credentials"))
         }
 
+        // KraftAdmin's own session, separate from whatever cookie/token
+        // the provider that validated this login would otherwise issue.
         val token = sessionStore.create(principal)
         response.addCookie(sessionCookie(token, request.isSecure))
 
@@ -79,46 +69,25 @@ class KraftAdminSpringbootAuthController(
     }
 
     @PostMapping("/logout")
-    fun logout(
-        request: HttpServletRequest,
-        response: HttpServletResponse,
-    ): ResponseEntity<Map<String, String>> {
-        // Invalidate server-side session if token is present in cookie
+    fun logout(request: HttpServletRequest, response: HttpServletResponse): ResponseEntity<Map<String, String>> {
         request.cookies
             ?.firstOrNull { it.name == sessionConfig.cookieName }
             ?.let { sessionStore.invalidate(it.value) }
-
-        // Expire the cookie on the client
         response.addCookie(expiredCookie())
-
         return ResponseEntity.ok(mapOf("message" to "Logged out"))
     }
 
     private fun sessionCookie(token: String, secure: Boolean) =
         Cookie(sessionConfig.cookieName, token).apply {
-            isHttpOnly = true
-            this.secure = secure
-            path = "/admin"
-            maxAge = (sessionConfig.expiryMinutes * 60).toInt()
+            isHttpOnly = true; this.secure = secure; path = "/admin"; maxAge = (sessionConfig.expiryMinutes * 60).toInt()
         }
 
     private fun expiredCookie() =
-        Cookie(sessionConfig.cookieName, "").apply {
-            isHttpOnly = true
-            path = "/admin"
-            maxAge = 0
-        }
-
-    private fun basicAuthHeader(username: String, password: String): String {
-        val encoded = Base64.getEncoder().encodeToString("$username:$password".toByteArray())
-        return "Basic $encoded"
-    }
+        Cookie(sessionConfig.cookieName, "").apply { isHttpOnly = true; path = "/admin"; maxAge = 0 }
 }
-
 
 class LoginRequest {
     var username: String = ""
     var password: String = ""
-
     override fun toString(): String = "username: $username, password: [PROTECTED]"
 }
