@@ -1,7 +1,6 @@
 package com.kraftadmin.config
 
 import com.kraftadmin.security.BasicAuthConfig
-import java.util.UUID
 
 interface KraftAdminPropertiesConfig {
     val enabled: Boolean
@@ -49,6 +48,8 @@ interface SecurityConfig {
      */
     val protectedRoutes: Map<String, Set<String>>
     val basicAuth: BasicAuthConfig
+    var allowedUsers: Set<String>
+    var userPermissions: Map<String, Set<String>>
 }
 
 interface PaginationConfig {

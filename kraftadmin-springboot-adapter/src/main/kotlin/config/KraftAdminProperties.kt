@@ -41,10 +41,6 @@ data class KraftAdminProperties(
         KraftAdminLoggingProperties()
 ) : KraftAdminPropertiesConfig {
 
-//    init {
-//        println("kraftPulseSpringKraftAdminProperties: $this")
-//    }
-
     class SpringThemeProperties(
         override var primaryColor: String = "#3b82f6",
         override var darkMode: Boolean = true
@@ -61,7 +57,9 @@ data class KraftAdminProperties(
         override var requiredRoles: List<String> = emptyList(),
         override var protectedRoutes: Map<String, Set<String>> = emptyMap(),
         @NestedConfigurationProperty
-        override var basicAuth: BasicAuthConfig = BasicAuthConfig()
+        override var basicAuth: BasicAuthConfig = BasicAuthConfig(),
+        override var allowedUsers: Set<String> = emptySet(),
+        override var userPermissions: Map<String, Set<String>> = emptyMap(),
     ) : SecurityConfig
 
     class SpringPaginationProperties(

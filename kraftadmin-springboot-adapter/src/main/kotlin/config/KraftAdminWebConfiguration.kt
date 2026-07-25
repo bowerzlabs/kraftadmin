@@ -20,7 +20,7 @@ class KraftAdminWebConfiguration : WebMvcConfigurer {
     override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
         val absolutePath = File(uploadPath).absolutePath
 
-        // Serve the Svelte/Vue/React Admin Frontend
+        // Serve the Svelte Admin Frontend
         registry.addResourceHandler("/admin/**")
             .addResourceLocations("classpath:/META-INF/resources/admin/")
 
