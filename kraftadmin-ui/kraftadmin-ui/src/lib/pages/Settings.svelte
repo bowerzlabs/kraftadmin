@@ -4,20 +4,65 @@
   import { fade, fly } from 'svelte/transition';
   import { kraftFetch } from '../../api';
   import { snackbar } from '../stores/snackbar';
+  import { Settings, Globe, Zap } from 'lucide-svelte';
 
   let activeTab = 'lib-config';
   let editableSettings: any = null;
   let saving = false;
 
   const tabs = [
-    { id: 'lib-config', label: 'Library Config', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
-    { id: 'site', label: 'Site Settings', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9' },
-    { id: 'integrations', label: 'Integrations', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }
+    { id: 'lib-config', label: 'Library Config', icon: Settings },
+    { id: 'site', label: 'Site Settings', icon: Globe },
+    { id: 'integrations', label: 'Integrations', icon: Zap }
   ];
+
+  /**
+   * GET /admin/api/settings currently omits `security` and `basePath`
+   * entirely (they're set once at Spring context startup and aren't part
+   * of the runtime-editable Settings DTO). Backfilling defaults here keeps
+   * the page from throwing on `editableSettings.security.cookieName` when
+   * `security` is undefined, instead of crashing the whole settings view.
+   */
+  function withDefaults(raw: any) {
+    return {
+      basePath: raw.basePath ?? '/admin',
+      title: raw.title ?? '',
+      logoUrl: raw.logoUrl ?? '',
+      theme: {
+        primaryColor: raw.theme?.primaryColor ?? '#3b82f6',
+        darkMode: raw.theme?.darkMode ?? true,
+      },
+      storage: {
+        uploadDir: raw.storage?.uploadDir ?? 'uploads/admin',
+        publicUrlPrefix: raw.storage?.publicUrlPrefix ?? '/admin/files',
+      },
+      pagination: {
+        defaultPageSize: raw.pagination?.defaultPageSize ?? 20,
+        maxPageSize: raw.pagination?.maxPageSize ?? 100,
+      },
+      features: {
+        allowDelete: raw.features?.allowDelete ?? true,
+        showTimestamps: raw.features?.showTimestamps ?? true,
+        readOnly: raw.features?.readOnly ?? false,
+      },
+      localeConfig: {
+        defaultLanguage: raw.localeConfig?.defaultLanguage ?? 'en',
+        timezone: raw.localeConfig?.timezone ?? 'UTC',
+      },
+      telemetryConfig: {
+        cloudUrl: raw.telemetryConfig?.cloudUrl ?? '',
+        enabled: raw.telemetryConfig?.enabled ?? false,
+      },
+      // Not returned by the backend at all currently — kept null so the
+      // Security Core section can render a read-only notice instead of
+      // throwing. Not included in save()'s payload either way.
+      security: raw.security ?? null,
+    };
+  }
 
   function syncFromStore() {
     if ($adminSettings) {
-      editableSettings = JSON.parse(JSON.stringify($adminSettings));
+      editableSettings = withDefaults(JSON.parse(JSON.stringify($adminSettings)));
     }
   }
 
@@ -27,64 +72,66 @@
     syncFromStore();
   }
 
-async function save() {
-  saving = true;
-  
-  // Explicitly map the UI object to the backend's expected UpdateRequest DTO
-  const payload = {
-    title: editableSettings.title,
-    logoUrl: editableSettings.logoUrl,
-    theme: {
-      primaryColor: editableSettings.theme.primaryColor,
-      darkMode: editableSettings.theme.darkMode
-    },
-    storage: {
-      uploadDir: editableSettings.storage.uploadDir,
-      publicUrlPrefix: editableSettings.storage.publicUrlPrefix
-    },
-    pagination: {
-      defaultPageSize: editableSettings.pagination.defaultPageSize,
-      maxPageSize: editableSettings.pagination.maxPageSize
-    },
-    features: {
-      allowDelete: editableSettings.features.allowDelete,
-      showTimestamps: editableSettings.features.showTimestamps,
-      readOnly: editableSettings.features.readOnly
-    },
-    localeConfig: {
-      defaultLanguage: editableSettings.localeConfig.defaultLanguage,
-      timezone: editableSettings.localeConfig.timezone
-    },
-    telemetryConfig: {
-      cloudUrl: editableSettings.telemetryConfig.cloudUrl,
-      enabled: editableSettings.telemetryConfig.enabled
-    }
-    // Note: 'security' is intentionally omitted here because it is not in your Update DTO
-  };
+  async function save() {
+    saving = true;
 
-  try {
-    const res = await kraftFetch('/admin/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload) // Send the explicitly mapped payload
-    });
+    // Explicitly map the UI object to the backend's expected UpdateRequest DTO
+    const payload = {
+      title: editableSettings.title,
+      logoUrl: editableSettings.logoUrl,
+      theme: {
+        primaryColor: editableSettings.theme.primaryColor,
+        darkMode: editableSettings.theme.darkMode
+      },
+      storage: {
+        uploadDir: editableSettings.storage.uploadDir,
+        publicUrlPrefix: editableSettings.storage.publicUrlPrefix
+      },
+      pagination: {
+        defaultPageSize: editableSettings.pagination.defaultPageSize,
+        maxPageSize: editableSettings.pagination.maxPageSize
+      },
+      features: {
+        allowDelete: editableSettings.features.allowDelete,
+        showTimestamps: editableSettings.features.showTimestamps,
+        readOnly: editableSettings.features.readOnly
+      },
+      localeConfig: {
+        defaultLanguage: editableSettings.localeConfig.defaultLanguage,
+        timezone: editableSettings.localeConfig.timezone
+      },
+      telemetryConfig: {
+        cloudUrl: editableSettings.telemetryConfig.cloudUrl,
+        enabled: editableSettings.telemetryConfig.enabled
+      }
+      // Note: 'security' and 'basePath' are intentionally omitted here —
+      // not in the backend's Update DTO, and not safely hot-reloadable
+      // (cookie name / session expiry are fixed at Spring context startup).
+    };
 
-    if (res.ok) {
-      const updated = await res.json();
-      adminSettings.set(updated);
-      snackbar.success('Settings saved.');
-    } else {
-      const errorData = await res.json().catch(() => null);
-      snackbar.error(errorData?.message ?? 'Failed to save settings.');
+    try {
+      const res = await kraftFetch('/admin/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        adminSettings.set(updated);
+        editableSettings = withDefaults(JSON.parse(JSON.stringify(updated)));
+        snackbar.success('Settings saved.');
+      } else {
+        const errorData = await res.json().catch(() => null);
+        snackbar.error(errorData?.message ?? 'Failed to save settings.');
+      }
+    } catch (e) {
+      console.error('Save failed', e);
+      snackbar.error('Unexpected error saving settings.');
+    } finally {
+      saving = false;
     }
-  } catch (e) {
-    console.error('Save failed', e);
-    snackbar.error('Unexpected error saving settings.');
-  } finally {
-    saving = false;
   }
-}
-
 </script>
 
 <div class="p-4 md:p-8 space-y-8 bg-bg-main min-h-screen transition-colors duration-300">
@@ -93,21 +140,21 @@ async function save() {
       <h1 class="text-2xl font-black text-text-main uppercase tracking-tighter">System Settings</h1>
       <p class="text-text-muted text-sm">Modify your KraftAdmin instance parameters.</p>
     </div>
-    <button 
-      on:click={save} 
-      disabled={saving || !editableSettings}
-      class="w-full sm:w-auto bg-brand-primary hover:opacity-90 disabled:opacity-50 text-white px-8 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-brand-primary/20">
+    <button
+            on:click={save}
+            disabled={saving || !editableSettings}
+            class="w-full sm:w-auto bg-brand-primary hover:opacity-90 disabled:opacity-50 text-white px-8 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-brand-primary/20">
       {saving ? 'Saving...' : 'Save Changes'}
     </button>
   </header>
 
   <nav class="flex items-center gap-2 p-1.5 bg-bg-surface border border-border-subtle rounded-2xl w-full sm:w-fit overflow-x-auto whitespace-nowrap">
     {#each tabs as tab}
-      <button 
-        on:click={() => activeTab = tab.id}
-        class="flex-shrink-0 flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all
+      <button
+              on:click={() => activeTab = tab.id}
+              class="flex-shrink-0 flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all
         {activeTab === tab.id ? 'bg-bg-main text-brand-primary border border-border-subtle shadow-sm' : 'text-text-muted hover:text-text-main'}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={tab.icon}/></svg>
+        <svelte:component this={tab.icon} class="w-4 h-4" strokeWidth={2} />
         {tab.label}
       </button>
     {/each}
@@ -129,7 +176,8 @@ async function save() {
               </div>
               <div class="space-y-2">
                 <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Base Path</label>
-                <input bind:value={editableSettings.basePath} class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-main" />
+                <input value={editableSettings.basePath} disabled class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-muted cursor-not-allowed" />
+                <p class="text-[10px] text-text-muted">Fixed at startup via kraftadmin.base-path — not editable here.</p>
               </div>
               <div class="lg:col-span-2 space-y-2">
                 <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Logo URL</label>
@@ -144,30 +192,39 @@ async function save() {
             </div>
             <div class="bg-bg-main p-6 rounded-2xl border border-border-subtle grid gap-6">
               <div class="flex items-center justify-between">
-                  <div>
-                    <span class="text-sm font-bold text-text-main">Accent Color</span>
-                    <p class="text-[10px] text-text-muted uppercase font-mono">{editableSettings.theme.primaryColor}</p>
-                  </div>
-                  <input type="color" bind:value={editableSettings.theme.primaryColor} class="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none" />
+                <div>
+                  <span class="text-sm font-bold text-text-main">Accent Color</span>
+                  <p class="text-[10px] text-text-muted uppercase font-mono">{editableSettings.theme.primaryColor}</p>
+                </div>
+                <input type="color" bind:value={editableSettings.theme.primaryColor} class="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-none" />
               </div>
             </div>
           </section>
 
-          <section class="space-y-6">
-            <div class="border-l-4 border-danger/50 pl-4">
-              <h3 class="text-lg font-bold text-text-main uppercase tracking-tight text-danger">Security Core</h3>
-            </div>
-            <div class="bg-bg-main p-6 rounded-2xl border border-border-subtle grid lg:grid-cols-2 gap-8">
-              <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Cookie Name</label>
-                <input bind:value={editableSettings.security.cookieName} class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-main" />
+          {#if editableSettings.security}
+            <section class="space-y-6">
+              <div class="border-l-4 border-danger/50 pl-4">
+                <h3 class="text-lg font-bold text-text-main uppercase tracking-tight text-danger">Security Core</h3>
               </div>
-              <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Session Expiry (Min)</label>
-                <input type="number" bind:value={editableSettings.security.sessionExpiryMinutes} class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-main" />
+              <div class="bg-bg-main p-6 rounded-2xl border border-border-subtle grid lg:grid-cols-2 gap-8">
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Cookie Name</label>
+                  <input bind:value={editableSettings.security.cookieName} class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-main" />
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Session Expiry (Min)</label>
+                  <input type="number" bind:value={editableSettings.security.sessionExpiryMinutes} class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-main" />
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          {:else}
+            <section class="space-y-2">
+              <div class="border-l-4 border-border-subtle pl-4">
+                <h3 class="text-lg font-bold text-text-main uppercase tracking-tight">Security Core</h3>
+                <p class="text-text-muted text-xs">Not editable from this screen — configure via kraftadmin.security.* in application.properties.</p>
+              </div>
+            </section>
+          {/if}
 
           <section class="space-y-6">
             <div class="border-l-4 border-border-subtle pl-4">
@@ -224,16 +281,16 @@ async function save() {
             </div>
             <div class="bg-bg-main p-6 rounded-2xl border border-border-subtle grid lg:grid-cols-2 gap-6">
               <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Default Language</label>
-                  <select bind:value={editableSettings.localeConfig.defaultLanguage} class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-main">
-                    <option value="en">English (US)</option>
-                    <option value="sw">Swahili</option>
-                    <option value="fr">French</option>
-                  </select>
+                <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Default Language</label>
+                <select bind:value={editableSettings.localeConfig.defaultLanguage} class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-main">
+                  <option value="en">English (US)</option>
+                  <option value="sw">Swahili</option>
+                  <option value="fr">French</option>
+                </select>
               </div>
               <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Timezone</label>
-                  <input bind:value={editableSettings.localeConfig.timezone} class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-main" />
+                <label class="text-[10px] font-black uppercase text-text-muted tracking-widest">Timezone</label>
+                <input bind:value={editableSettings.localeConfig.timezone} class="w-full bg-bg-surface p-3 rounded-xl border border-border-subtle outline-none text-text-main" />
               </div>
             </div>
           </section>
@@ -250,12 +307,6 @@ async function save() {
                 </div>
                 <input type="checkbox" bind:checked={editableSettings.telemetryConfig.enabled} class="w-6 h-6 accent-brand-primary cursor-pointer" />
               </div>
-              <!-- {#if editableSettings.telemetryConfig.enabled}
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase text-brand-primary/60 tracking-widest">Telemetry Sink URL</label>
-                  <input bind:value={editableSettings.telemetryConfig.cloudUrl} class="w-full bg-bg-surface p-4 rounded-xl border border-brand-primary/20 focus:ring-1 ring-brand-primary outline-none text-text-main font-mono" />
-                </div>
-              {/if} -->
             </div>
           </section>
         </div>

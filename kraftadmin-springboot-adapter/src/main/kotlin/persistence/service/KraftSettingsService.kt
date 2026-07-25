@@ -4,12 +4,12 @@ import com.kraftadmin.logging.KraftAdminLogging
 import config.KraftAdminProperties
 import dtos.PublicKraftAdminSettings
 import dtos.SettingsUpdateRequest
-import dtos.toPublicSettings
 import jakarta.annotation.PostConstruct
 import json.KraftJsonSerializer
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
+import util.toPublicSettings
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -109,7 +109,7 @@ class KraftSettingsService(
         }
         return properties.toPublicSettings()
     }
-
+    
     fun getPublicSettings(): PublicKraftAdminSettings = properties.toPublicSettings()
 
     private fun applyUpdate(source: SettingsUpdateRequest) {
