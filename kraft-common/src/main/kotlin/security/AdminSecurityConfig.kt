@@ -15,18 +15,12 @@ package com.kraftadmin.security
 data class AdminSecurityConfig(
     val basicAuth: BasicAuthConfig = BasicAuthConfig(),
     val customProvider: AdminSecurityProvider? = null,
-    val sessionConfig: SessionConfig = SessionConfig(),
-    /**
-     * Supplied by adapter modules (e.g. spring-boot-adapter).
-     * Called only when [frameworkSecurityActiveCheck] returns true.
-     */
-    val frameworkAdapterFactory: (() -> AdminSecurityProvider)? = null,
+    val sessionConfig: SessionConfig = DefaultSessionConfig(),
     /**
      * Optional override for framework detection logic.
      * Defaults to classpath marker scanning in [security.SecurityProviderResolver].
      */
     val frameworkSecurityActiveCheck: (() -> Boolean)? = null,
-
     /**
      * Roles permitted to access /admin/ when no per-route override exists
      * in [protectedRoutes]. Deliberately narrow by default — admin access
@@ -36,15 +30,31 @@ data class AdminSecurityConfig(
      * this to whichever role(s) actually represent admin/staff access —
      * never widen this default to include general-purpose application roles.
      */
-
     val requiredRoles: List<String> = emptyList(),
-
     /**
      * Per-route-prefix role overrides (e.g. "/api/settings/" -> {"ROLE_SUPERUSER"}).
      * Longest matching prefix wins; falls back to [requiredRoles] when no
      * entry matches. See AdminSecurityFilter.resolveRouteRoles.
      */
     val protectedRoutes: Map<String, Set<String>> = emptyMap(),
-
-
-    )
+    val authMode: String,
+    /**
+     * Explicit username allowlist. When non-empty, a user must be in this
+     * set (in addition to passing requiredRoles) to access ANY /admin
+     * route. This is the answer to "role X has 1000 users, only 3 of them
+     * should reach the admin panel" — role membership alone is too coarse.
+     * Empty (default) means no additional restriction beyond role checks.
+     * Matched case-insensitively against AdminUserDTO.username.
+     */
+    val allowedUsers: Set<String> = emptySet(),
+    /**
+     * Per-username permission overrides, independent of the host app's
+     * own role system. Keys are usernames (case-insensitive), values are
+     * permission sets KraftAdmin itself understands (e.g. "delete",
+     * "read-only", or custom action names). Checked in AdminSecurityFilter
+     * / custom-action handlers AFTER authentication+role+allowlist all
+     * pass. Absent entry = default permission set (features.readOnly /
+     * features.allowDelete governs, same as today).
+     */
+    val userPermissions: Map<String, Set<String>> = emptyMap(),
+)

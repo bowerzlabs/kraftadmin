@@ -36,4 +36,22 @@ interface AdminSecurityProvider {
      * Coroutine Context, or Session Store).
      */
     fun getCurrentUser(): AdminPrincipal?
+
+    /**
+     * Validates raw username/password credentials at the LOGIN moment,
+     * as opposed to [authenticate] which validates an already-established
+     * request (cookie/header/session). Returns null if this provider
+     * doesn't support credential-based login at all (e.g. it only reads
+     * an existing SecurityContext, or auth here is redirect-only SSO).
+     *
+     * Providers that DO support this are responsible for confirming the
+     * user actually exists and is valid against whatever mechanism they
+     * represent — AuthenticationManager.authenticate() naturally does
+     * this (throws BadCredentialsException / UsernameNotFoundException
+     * if not), regardless of whether that manager is backed by a JWT
+     * issuer, DB-backed UserDetailsService, LDAP, or an OAuth2 resource
+     * server. The caller (KraftAdminAuthController) never needs to know
+     * which.
+     */
+    fun authenticateCredentials(username: String, password: String): AdminUserDTO? = null
 }
