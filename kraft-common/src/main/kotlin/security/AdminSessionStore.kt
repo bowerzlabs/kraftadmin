@@ -57,6 +57,18 @@ class AdminSessionStore(private val config: SessionConfig) {
         store.remove(token)
     }
 
+    /**
+     * Count of currently valid (non-expired) sessions. Used by the
+     * dashboard's "Active Sessions" stat — purges expired entries first
+     * so the count reflects reality rather than including sessions that
+     * are technically expired but haven't been touched by get()/create()
+     * since expiring.
+     */
+    fun activeCount(): Int {
+        purgeExpired()
+        return store.size
+    }
+
     private fun purgeExpired() {
         val now = Instant.now()
         store.entries.removeIf { (_, entry) -> now.isAfter(entry.expiresAt) }
