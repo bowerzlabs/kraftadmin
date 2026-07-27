@@ -29,6 +29,11 @@ dependencies {
     compileOnly("org.springframework.data:spring-data-mongodb")
     compileOnly("org.springframework.boot:spring-boot-starter-validation")
     compileOnly("org.springframework.boot:spring-boot-starter-security")
+    compileOnly("com.zaxxer:HikariCP:5.1.0")
+    compileOnly("org.springframework.boot:spring-boot-starter-cache")
+    compileOnly("org.springframework:spring-context-support")
+
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
 
     // Shadow JAR will relocate these so they never conflict with consumer's Jackson
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.0")
@@ -48,6 +53,7 @@ dependencies {
     testImplementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
     testImplementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     testImplementation(kotlin("test"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 }
 
 kotlin {
