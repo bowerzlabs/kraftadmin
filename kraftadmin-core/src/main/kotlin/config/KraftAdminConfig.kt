@@ -12,11 +12,7 @@ data class KraftAdminConfig(
     val environment: Environment = Environment.PROD,
     val discoveredEntities: Set<DiscoveredEntity<*>> = setOf(),
     val generatedResources: List<KraftAdminResource<*>> = listOf(),
-//    val persistence: PersistenceConfig = PersistenceConfig.None,
     val security: KraftSecurityConfig = KraftSecurityConfig.Standalone(),
-//    val ui: UiConfig = UiConfig(),
-//    val features: Set<Feature> = emptySet(),
-//    val metadataProviders: List<MetadataProvider> = emptyList()
 ) {
 
     enum class Mode {
