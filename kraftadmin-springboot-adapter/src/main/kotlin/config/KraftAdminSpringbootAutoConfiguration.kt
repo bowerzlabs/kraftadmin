@@ -6,7 +6,7 @@ import com.kraftadmin.config.KraftAdminRuntimeConfig
 import com.kraftadmin.events.KraftEventConsumer
 import com.kraftadmin.events.KraftEventPublisher
 import com.kraftadmin.logging.KraftAdminLogging
-import com.kraftadmin.persistence.metrics.KraftMetricService
+import persistence.metrics.KraftMetricService
 import com.kraftadmin.spi.EntityDiscoveryService
 import discovery.ResourceGenerator
 import discovery.discoverer.environment.SpringBootEnvironmentProvider
@@ -39,9 +39,11 @@ import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import events.SpringKraftLifecycleService
 import jakarta.persistence.EntityManager
+import org.springframework.beans.factory.ObjectProvider
 import persistence.jpa.metrics.JpaMetricProvider
 import util.JacksonKraftJsonSerializer
 import validation.JakartaValidationExtractor
+import javax.sql.DataSource
 
 @AutoConfiguration
 @Import(
@@ -51,14 +53,14 @@ import validation.JakartaValidationExtractor
     KraftAdminDiscoveryAutoConfiguration::class,
     KraftAdminWebConfiguration::class,
     PersistenceValidatorConfiguration::class,
-    KraftAdminEventLogger::class
+    KraftAdminEventLogger::class,
+    KraftAdminCacheConfiguration::class
 )
 @EnableConfigurationProperties(KraftAdminProperties::class)
 @ConditionalOnProperty(prefix = "kraftadmin", name = ["enabled"], havingValue = "true", matchIfMissing = false)
 class KraftAdminSpringBootAutoConfiguration(
     private val properties: KraftAdminProperties,
-    private val applicationContext: ApplicationContext,
-    private val entityDiscoveryService: EntityDiscoveryService,
+    private val applicationContext: ApplicationContext
 ) {
 
     private val logger = KraftAdminLogging.logger(javaClass)
@@ -174,19 +176,33 @@ class KraftAdminSpringBootAutoConfiguration(
 
     @Bean
     @ConditionalOnMissingBean(KraftEnvironmentProvider::class)
-    fun springEnvironmentProvider(): KraftEnvironmentProvider = SpringBootEnvironmentProvider()
+    fun springBootEnvironmentProvider(
+        environment: Environment,
+        dataSources: ObjectProvider<DataSource>,
+        mongoDatabases: ObjectProvider<Map<String, Any>>,
+    ): KraftEnvironmentProvider =
+        SpringBootEnvironmentProvider(
+            environment = environment,
+            dataSources = dataSources,
+            mongoDatabases = mongoDatabases,
+            appVersion = properties.version
+        )
+
 
     @Bean
     fun kraftAdminDescriptorFactory(
         runtimeConfig: KraftAdminRuntimeConfig,
         validationExtractor: KraftValidationExtractor,
-        environmentProvider: KraftEnvironmentProvider
-    ) = KraftAdminDescriptorFactory(
-        runtimeConfig = runtimeConfig,
-        validationExtractor = validationExtractor,
-        environmentProvider = environmentProvider,
-        entityDiscoverer = entityDiscoveryService
-    )
+        environmentProvider: KraftEnvironmentProvider,
+        entityDiscoveryService: EntityDiscoveryService,
+    ): KraftAdminDescriptorFactory {
+        return KraftAdminDescriptorFactory(
+            runtimeConfig = runtimeConfig,
+            validationExtractor = validationExtractor,
+            environmentProvider = environmentProvider,
+            entityDiscoverer = entityDiscoveryService
+        )
+    }
 
     @Bean
     @ConditionalOnMissingBean(KraftAdminSpringbootUploadController::class)

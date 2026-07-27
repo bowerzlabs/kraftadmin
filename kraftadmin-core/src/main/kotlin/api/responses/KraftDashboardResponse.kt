@@ -1,5 +1,6 @@
 package com.kraftadmin.api.responses
 
+import com.kraftadmin.spi.DataSourceInfo
 import com.kraftadmin.spi.MetricResult
 
 data class KraftDashboardResponse(
@@ -27,6 +28,10 @@ data class LibraryFeature(
 
 data class SystemStatus(
     val environment: String,
-    val databaseType: String,
-    val totalEntitiesTracked: Int
+    val isProduction: Boolean,
+    val totalEntitiesTracked: Int,
+    val dataSources: List<DataSourceInfo>,   // replaces the old single databaseType: String
+    val uptimeSeconds: Long,
+    val javaVersion: String,
+    val appVersion: String?,
 )

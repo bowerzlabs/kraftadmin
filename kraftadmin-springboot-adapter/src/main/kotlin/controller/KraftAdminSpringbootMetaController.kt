@@ -9,12 +9,15 @@ import com.kraftadmin.api.responses.KraftOperationResponse
 import com.kraftadmin.api.responses.LibraryFeature
 import com.kraftadmin.api.responses.ResourceDataResponse
 import com.kraftadmin.api.responses.SystemStatus
+import com.kraftadmin.config.KraftAdminConfig
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptor
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptorFactory
 import com.kraftadmin.logging.KraftAdminLogging
-import com.kraftadmin.persistence.metrics.KraftMetricService
+import com.kraftadmin.security.AdminSessionStore
+import persistence.metrics.KraftMetricService
 import com.kraftadmin.spi.EntityDiscoveryService
 import config.KraftAdminProperties
+import discovery.discoverer.environment.SpringBootEnvironmentProvider
 import discovery.metrics.MetricDiscoverer
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.ResponseEntity
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import events.SpringKraftCustomActionService
+import org.springframework.cache.annotation.Cacheable
 import security.SecurityProviderChain
 
 @RestController
@@ -38,38 +42,51 @@ class KraftAdminSpringbootMetaController(
     private val properties: KraftAdminProperties,
     private val customActionService: SpringKraftCustomActionService,
     private val entityDiscoveryService: EntityDiscoveryService,
-    private val metricService: KraftMetricService
+    private val metricService: KraftMetricService,
+    private val environment: SpringBootEnvironmentProvider,
+    private val sessionStore: AdminSessionStore
 ) {
     private val logger = KraftAdminLogging.logger(javaClass)
 
     @GetMapping("/dashboard")
+    @Cacheable(
+        cacheNames = ["kraftAdminDashboard"],
+        cacheManager = "kraftAdminCacheManager",
+        sync = true
+    )
     fun getDashboardOverview(): ResponseEntity<KraftDashboardResponse> {
         val resourceNames = descriptorFactory.getRegisteredResourceNames()
         val totalEntitiesCount = resourceNames.sumOf { name ->
             descriptorFactory.getTotalCountForResource(name)
         }
 
+        val activeSessions = sessionStore.activeCount()
+
         val stats = listOf(
             DashboardStat("Total Managed Records", totalEntitiesCount.toString(), "database"),
             DashboardStat("Resources Registered", resourceNames.size.toString(), "layers"),
-            DashboardStat("Active Sessions", "1", "users")
+            DashboardStat("Active Sessions", activeSessions.toString(), "users"),
         )
 
-        val discoveredEntities = entityDiscoveryService.discoverAll() // reuse existing discovery
+        val discoveredEntities = entityDiscoveryService.discoverAll()
         val discoveredMetrics = MetricDiscoverer.discover(discoveredEntities)
         val metrics = metricService.compute(discoveredMetrics)
 
-        val libraryFeatures = checkFeatureStatus()
+        val runtimeInfo = environment.getRuntimeInfo()
 
         val response = KraftDashboardResponse(
             title = properties.title,
             welcomeMessage = "Welcome to the ${properties.title} admin dashboard.",
             stats = stats,
-            features = libraryFeatures,
+            features = checkFeatureStatus(),
             systemStatus = SystemStatus(
-                environment = "Development",
-                databaseType = "H2 / R2DBC",
-                totalEntitiesTracked = resourceNames.size
+                environment = environment.getEnvironmentName(),
+                isProduction = environment.isProduction(),
+                totalEntitiesTracked = resourceNames.size,
+                dataSources = environment.getDataSources(),
+                uptimeSeconds = runtimeInfo.uptimeSeconds,
+                javaVersion = runtimeInfo.javaVersion,
+                appVersion = runtimeInfo.appVersion,
             ),
             metrics = metrics
         )
