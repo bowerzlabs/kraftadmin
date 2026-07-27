@@ -38,6 +38,7 @@ import com.kraftadmin.enums.MetricPeriod
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
+@JvmRepeatable(KraftAdminMetrics::class)
 annotation class KraftAdminMetric(
     val name: String,
     val label: String = "",
@@ -49,3 +50,7 @@ annotation class KraftAdminMetric(
     val period: MetricPeriod = MetricPeriod.MONTH,
     val chart: ChartType = ChartType.LINE
 )
+
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class KraftAdminMetrics(val value: Array<KraftAdminMetric>)
