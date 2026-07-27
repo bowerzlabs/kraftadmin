@@ -7,9 +7,15 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 object MetricPeriodMath {
-
     private val ZONE = ZoneOffset.UTC
-    const val DEFAULT_LOOKBACK = 12 // annotation has no lookback field — fixed default for now
+    const val DEFAULT_LOOKBACK = 12
+
+    // Compiled once, reused across every label() call instead of per-call
+    // pattern parsing — DateTimeFormatter.ofPattern is not free, and this
+    // runs once per bucket, per metric, per dashboard load.
+    private val DAY_FORMAT = DateTimeFormatter.ofPattern("MMM d")
+    private val MONTH_FORMAT = DateTimeFormatter.ofPattern("MMM yyyy")
+    private val YEAR_FORMAT = DateTimeFormatter.ofPattern("yyyy")
 
     fun truncate(instant: Instant, period: MetricPeriod): Instant {
         val date = instant.atZone(ZONE).toLocalDate()
@@ -41,21 +47,21 @@ object MetricPeriodMath {
     fun label(instant: Instant, period: MetricPeriod): String {
         val zdt = instant.atZone(ZONE)
         return when (period) {
-            MetricPeriod.DAY -> zdt.format(DateTimeFormatter.ofPattern("MMM d"))
-            MetricPeriod.WEEK -> "Wk of " + zdt.format(DateTimeFormatter.ofPattern("MMM d"))
-            MetricPeriod.MONTH -> zdt.format(DateTimeFormatter.ofPattern("MMM yyyy"))
+            MetricPeriod.DAY -> zdt.format(DAY_FORMAT)
+            MetricPeriod.WEEK -> "Wk of " + zdt.format(DAY_FORMAT)
+            MetricPeriod.MONTH -> zdt.format(MONTH_FORMAT)
             MetricPeriod.QUARTER -> "Q${(zdt.monthValue - 1) / 3 + 1} ${zdt.year}"
-            MetricPeriod.YEAR -> zdt.format(DateTimeFormatter.ofPattern("yyyy"))
+            MetricPeriod.YEAR -> zdt.format(YEAR_FORMAT)
         }
     }
 
     fun buckets(now: Instant, period: MetricPeriod, lookback: Int = DEFAULT_LOOKBACK): List<Pair<Instant, Instant>> {
         val currentStart = truncate(now, period)
-        return (lookback - 1 downTo 0).map { i ->
-            val start = advance(currentStart, period, -i.toLong())
+        val firstStart = advance(currentStart, period, -(lookback - 1).toLong())
+        return (0 until lookback).map { i ->
+            val start = advance(firstStart, period, i.toLong())
             val end = advance(start, period, 1)
             start to end
         }
     }
-
 }

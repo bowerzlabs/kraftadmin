@@ -33,6 +33,7 @@ fun buildTimeSeriesResult(metric: KraftAdminMetric, buckets: List<MetricBucket>)
     )
 }
 
+
 fun buildGroupedResult(metric: KraftAdminMetric, groups: List<MetricGroup>): MetricResult {
     return MetricResult(
         name = metric.name,
