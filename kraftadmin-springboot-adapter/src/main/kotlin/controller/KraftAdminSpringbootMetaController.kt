@@ -30,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import events.SpringKraftCustomActionService
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.Cacheable
 import security.SecurityProviderChain
 
@@ -44,16 +46,11 @@ class KraftAdminSpringbootMetaController(
     private val entityDiscoveryService: EntityDiscoveryService,
     private val metricService: KraftMetricService,
     private val environment: SpringBootEnvironmentProvider,
-    private val sessionStore: AdminSessionStore
+    private val sessionStore: AdminSessionStore,
 ) {
     private val logger = KraftAdminLogging.logger(javaClass)
 
     @GetMapping("/dashboard")
-    @Cacheable(
-        cacheNames = ["kraftAdminDashboard"],
-        cacheManager = "kraftAdminCacheManager",
-        sync = true
-    )
     fun getDashboardOverview(): ResponseEntity<KraftDashboardResponse> {
         val resourceNames = descriptorFactory.getRegisteredResourceNames()
         val totalEntitiesCount = resourceNames.sumOf { name ->

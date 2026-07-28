@@ -40,9 +40,11 @@ import org.springframework.transaction.support.TransactionTemplate
 import events.SpringKraftLifecycleService
 import jakarta.persistence.EntityManager
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.beans.factory.annotation.Qualifier
 import persistence.jpa.metrics.JpaMetricProvider
 import util.JacksonKraftJsonSerializer
 import validation.JakartaValidationExtractor
+import java.util.concurrent.Executor
 import javax.sql.DataSource
 
 @AutoConfiguration
@@ -54,7 +56,7 @@ import javax.sql.DataSource
     KraftAdminWebConfiguration::class,
     PersistenceValidatorConfiguration::class,
     KraftAdminEventLogger::class,
-    KraftAdminCacheConfiguration::class
+    KraftAdminAsyncConfiguration::class
 )
 @EnableConfigurationProperties(KraftAdminProperties::class)
 @ConditionalOnProperty(prefix = "kraftadmin", name = ["enabled"], havingValue = "true", matchIfMissing = false)
@@ -121,9 +123,10 @@ class KraftAdminSpringBootAutoConfiguration(
     @ConditionalOnMissingBean(KraftEventPublisher::class)
     fun kraftEventPublisher(
         registry: SpringListenerRegistry,
-        consumers: List<KraftEventConsumer>
+        consumers: List<KraftEventConsumer>,
+        @Qualifier("kraftEventExecutor") kraftEventExecutor: Executor
     ): KraftEventPublisher {
-        return SpringKraftEventPublisher(registry, consumers)
+        return SpringKraftEventPublisher(registry, consumers, kraftEventExecutor = kraftEventExecutor)
     }
 
     @Bean
@@ -179,12 +182,11 @@ class KraftAdminSpringBootAutoConfiguration(
     fun springBootEnvironmentProvider(
         environment: Environment,
         dataSources: ObjectProvider<DataSource>,
-        mongoDatabases: ObjectProvider<Map<String, Any>>,
     ): KraftEnvironmentProvider =
         SpringBootEnvironmentProvider(
             environment = environment,
             dataSources = dataSources,
-            mongoDatabases = mongoDatabases,
+            applicationContext,
             appVersion = properties.version
         )
 
