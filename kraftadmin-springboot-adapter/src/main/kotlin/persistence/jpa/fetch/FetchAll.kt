@@ -151,7 +151,7 @@ class FetchAll<T : Any>(
                 )
 
                 throw PersistenceException(
-                    errorResolver.resolve( metadata.entityName ?: "Resource", e),
+                    errorResolver.resolve(metadata.entityName, e),
                     e
                 )
             }

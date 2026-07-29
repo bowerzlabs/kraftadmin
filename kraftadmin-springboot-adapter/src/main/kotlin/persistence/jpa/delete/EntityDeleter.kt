@@ -6,6 +6,7 @@ import com.kraftadmin.events.KraftAdminEvent
 import com.kraftadmin.events.KraftLifecycleService
 import com.kraftadmin.utils.files.AdminStorageProvider
 import com.kraftadmin.logging.KraftAdminLogging
+import com.kraftadmin.model.BulkDeleteOutcome
 import jakarta.persistence.EntityManager
 import org.springframework.transaction.support.TransactionTemplate
 import persistence.error.PersistenceErrorResolver
@@ -137,33 +138,36 @@ class EntityDeleter<T : Any>(
         )
     }
 
-    fun bulkDelete(ids: List<String>): Int {
-        return transactionTemplate.execute { status ->
-            try {
-                var count = 0
-                ids.forEach { id ->
-                    val convertedId = metadata.convertId( id)
-                    val entity = entityManager.find(entityClass.java, convertedId)
+    /**
+     * Deletes each id independently via [delete], so a constraint violation
+     * on one record (e.g. Album#100 still has Tracks) is reported and
+     * skipped rather than rolling back every other successful delete in
+     * the batch. Reuses the exact same lifecycle hooks, file cleanup, and
+     * error resolution as a single delete — no duplicated remove logic.
+     */
+    fun bulkDelete(ids: List<String>): BulkDeleteOutcome {
+        val failed = linkedMapOf<String, String>()
+        var deletedCount = 0
 
-                    if (entity != null) {
-                        fileCleanupService.cleanupFiles(entity)
-                        entityManager.remove(entity)
-                        count++
-                    }
+        ids.forEach { id ->
+            try {
+                val result = delete(id)
+                if (result.success) {
+                    deletedCount++
+                } else {
+                    failed[id] = result.message ?: "Delete failed."
                 }
-                entityManager.flush()
-                count
-            } catch (e: Exception) {
-                logger.error("Bulk delete failed for ${entityClass.simpleName}: ${e.message}", e)
-                status.setRollbackOnly()
-                // Surface WHY the bulk delete failed (e.g. FK constraint on
-                // one of the records) rather than silently reporting 0
-                // deleted, which looks identical to "nothing matched."
-                throw PersistenceException(
-                    errorResolver.resolve(entityClass.simpleName ?: "Resource", e),
-                    e
-                )
+            } catch (e: PersistenceException) {
+                logger.warn("Bulk delete failed for ${entityClass.simpleName}#$id: ${e.message}")
+                failed[id] = e.message ?: "Delete failed due to a constraint violation."
             }
-        } ?: 0
+        }
+
+        return BulkDeleteOutcome(
+            requested = ids.size,
+            deleted = deletedCount,
+            failed = failed
+        )
     }
+
 }
