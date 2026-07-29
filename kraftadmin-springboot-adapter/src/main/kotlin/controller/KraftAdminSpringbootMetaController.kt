@@ -10,6 +10,7 @@ import com.kraftadmin.api.responses.LibraryFeature
 import com.kraftadmin.api.responses.ResourceDataResponse
 import com.kraftadmin.api.responses.SystemStatus
 import com.kraftadmin.config.KraftAdminConfig
+import com.kraftadmin.enums.BulkAction
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptor
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptorFactory
 import com.kraftadmin.logging.KraftAdminLogging
@@ -33,6 +34,7 @@ import events.SpringKraftCustomActionService
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.Cacheable
+import persistence.jpa.bulk_actions.BulkActionService
 import security.SecurityProviderChain
 
 @RestController
@@ -47,6 +49,7 @@ class KraftAdminSpringbootMetaController(
     private val metricService: KraftMetricService,
     private val environment: SpringBootEnvironmentProvider,
     private val sessionStore: AdminSessionStore,
+    private val bulkActionService: BulkActionService,
 ) {
     private val logger = KraftAdminLogging.logger(javaClass)
 
@@ -233,15 +236,51 @@ class KraftAdminSpringbootMetaController(
         @PathVariable actionName: String,
         @RequestBody input: Any?
     ): KraftActionResponse? {
-        logger.info("Action performed: resource {}, id : {}, action: {}, params: {}", resource, id, actionName, input)
         val actionResponse = customActionService.execute(resource, id, actionName, input)
-        logger.info("action response: $actionResponse")
         return actionResponse
     }
 
-    @GetMapping("/")
-    suspend fun performBulkAction() {
-        logger.info("performing bulk action")
+    @GetMapping("/resources/{resource}/bulk-action")
+    fun performBulkAction(
+        @PathVariable resource: String,
+        @RequestParam(required = true) actionName: String,
+        @RequestParam(name = "selectedIds", required = false) selectedIds: List<String>?,
+        @RequestParam(name = "format", defaultValue = "JSON") format: String,
+    ): ResponseEntity<*> {
+        val ids = selectedIds ?: emptyList()
+
+        logger.info(
+            "Performing bulk action {} on {} ({})",
+            actionName, resource,
+            if (ids.isEmpty()) "no ids — full resource" else "${ids.size} id(s)"
+        )
+
+        return when (BulkAction.valueOf(actionName)) {
+            BulkAction.DELETE -> {
+                val result = bulkActionService.deleteBulk(resource, ids)
+                ResponseEntity.ok(
+                    KraftOperationResponse(
+                        success = result.failed.isEmpty(),
+                        message = "Deleted ${result.deleted}/${result.requested} record(s).",
+                        data = result
+                    )
+                )
+            }
+            BulkAction.EXPORT -> {
+                val export = bulkActionService.exportBulk(resource, ids, format)
+                ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"${export.fileName}\"")
+                    .header("Content-Type", export.contentType)
+                    .body(export.content)
+            }
+            BulkAction.PRINT -> {
+                val printed = bulkActionService.printBulk(resource, ids)
+                ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"${printed.fileName}\"")
+                    .header("Content-Type", printed.contentType)
+                    .body(printed.content)
+            }
+        }
     }
 
     private fun checkFeatureStatus(): List<LibraryFeature> {

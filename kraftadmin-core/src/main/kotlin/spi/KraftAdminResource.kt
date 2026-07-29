@@ -4,6 +4,7 @@ import api.utils.ResourceRow
 import com.kraftadmin.api.responses.KraftOperationResponse
 import com.kraftadmin.api.responses.PagedResponse
 import com.kraftadmin.enums.ProviderType
+import com.kraftadmin.model.BulkDeleteOutcome
 import com.kraftadmin.spi.KraftAdminColumn
 import com.kraftadmin.ui_descriptors.KraftActionDescriptor
 import com.kraftadmin.ui_descriptors.ResourceDescriptor
@@ -59,6 +60,10 @@ interface KraftAdminResource<T : Any> {
     fun save(name: String, data: Map<String, Any?>) = dataProvider?.save(name = name, data = data)
 
     fun delete(id: String): KraftOperationResponse<Unit>? = dataProvider?.delete(id)
+
+    fun bulkDelete(ids: List<String>): BulkDeleteOutcome {
+        return dataProvider?.bulkDelete(ids)!!
+    }
 
     fun countAll(name: String): Long? = dataProvider?.countAll(name)
 

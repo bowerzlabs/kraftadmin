@@ -4,6 +4,7 @@ import api.utils.ObjectResponse
 import api.utils.ResourceRow
 import com.kraftadmin.api.responses.KraftOperationResponse
 import com.kraftadmin.api.responses.PagedResponse
+import com.kraftadmin.model.BulkDeleteOutcome
 import com.kraftadmin.spi.KraftAdminColumn
 import com.kraftadmin.ui_descriptors.LookupDescriptor
 
@@ -23,4 +24,5 @@ interface KraftDataProvider<T : Any> {
     fun countAll(name: String): Long?
     fun getLookupDataByIds(lookup: LookupDescriptor, ids: List<String>): List<ObjectResponse>
     fun findById(id: String): T?
+    fun bulkDelete(ids: List<String>): BulkDeleteOutcome
 }

@@ -10,6 +10,7 @@ import com.kraftadmin.config.KraftAdminPropertiesConfig
 import com.kraftadmin.config.KraftAdminRuntimeConfig
 import com.kraftadmin.enums.ProviderType
 import com.kraftadmin.logging.KraftAdminLogging
+import com.kraftadmin.model.BulkDeleteOutcome
 import com.kraftadmin.spi.EntityDiscoveryService
 import com.kraftadmin.spi.KraftDataProvider
 import security.SecurityProviderChain
@@ -147,16 +148,18 @@ class KraftAdminDescriptorFactory(
         return resource.delete(id)
     }
 
+    fun bulkDeleteResource(name: String, ids: List<String>): BulkDeleteOutcome {
+        val resource = findResource(name)
+        return resource.bulkDelete(ids)
+    }
+
 
     fun getLookupData(resourceName: String, search: String): List<ObjectResponse> {
         val resource = findResource(resourceName)
         val provider = resource.dataProvider
             ?: throw IllegalStateException("Resource '$resourceName' does not use any KraftDataProvider.")
-//        val column = resource.columns.firstOrNull { it.name == columnName }
         val lookup = LookupDescriptor(
             targetEntity = resourceName,
-//            lookupKey = columnName,
-//            displayField = columnName,
         )
         return provider.getLookupData(lookup, 20, search)
     }
@@ -165,11 +168,8 @@ class KraftAdminDescriptorFactory(
         val resource = findResource(name)
         val provider = resource.dataProvider
             ?: throw IllegalStateException("Resource '$name' does not use any KraftDataProvider.")
-//        val column = resource.columns.firstOrNull { it.name == columnName }
         val lookup = LookupDescriptor(
             targetEntity = name,
-//            lookupKey = columnName,
-//            displayField = columnName,
         )
         return provider.getLookupDataByIds(lookup, ids)
     }
@@ -202,8 +202,6 @@ class KraftAdminDescriptorFactory(
      */
     fun getTotalCountForResource(name: String): Long {
         val resource = findResource(name)
-        // We assume your SPI 'KraftAdminResource' or its DataProvider
-        // has a count() method.
         return resource.countAll(name) ?: 0
     }
 
@@ -219,4 +217,31 @@ class KraftAdminDescriptorFactory(
 //    fun getResourceData(provider: String): ResourceDataResponse {
 //        return findResource(provider)
 //    }
+
+
+    /**
+     * Resolves rows for bulk export. Empty/blank ids means "export everything"
+     * for this resource — reuses the existing getLookupData search path with
+     * no query and an unbounded limit, rather than adding a new provider
+     * method (avoids repeating the interface-default AbstractMethodError class
+     * of bug across every KraftDataProvider implementation).
+     *
+     * NOTE: this loads the full result set into memory. Fine for moderate
+     * table sizes; if any resource can grow into the hundreds of thousands of
+     * rows, this should be swapped for a streaming/cursor-based export instead.
+     */
+    fun getLookupDataForExport(name: String, ids: List<String>): List<ObjectResponse> {
+        val resource = findResource(name)
+        val provider = resource.dataProvider
+            ?: throw IllegalStateException("Resource '$name' does not use any KraftDataProvider.")
+
+        val lookup = LookupDescriptor(targetEntity = name)
+
+        return if (ids.isEmpty()) {
+            provider.getLookupData(lookup, limit = Int.MAX_VALUE, searchQuery = null)
+        } else {
+            provider.getLookupDataByIds(lookup, ids)
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 package discovery
 
+import com.kraftadmin.model.BulkDeleteOutcome
 import com.kraftadmin.spi.AbstractResource
 import com.kraftadmin.spi.DiscoveredEntity
 import com.kraftadmin.spi.KraftAdminResource
@@ -83,6 +84,15 @@ object ResourceGenerator {
                         "Entity identifier cannot be null: " +
                                 entityClass.qualifiedName
                     )
+
+            override fun bulkDelete(ids: List<String>): BulkDeleteOutcome {
+                return dataProvider?.bulkDelete(ids)
+                    ?: com.kraftadmin.model.BulkDeleteOutcome(
+                        requested = ids.size,
+                        deleted = 0,
+                        failed = ids.associateWith { "No data provider configured for this resource." }
+                    )
+            }
 
         }
 

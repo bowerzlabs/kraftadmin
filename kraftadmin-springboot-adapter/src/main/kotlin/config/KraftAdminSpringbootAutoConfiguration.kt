@@ -41,6 +41,7 @@ import events.SpringKraftLifecycleService
 import jakarta.persistence.EntityManager
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Qualifier
+import persistence.jpa.bulk_actions.BulkActionService
 import persistence.jpa.metrics.JpaMetricProvider
 import util.JacksonKraftJsonSerializer
 import validation.JakartaValidationExtractor
@@ -56,7 +57,8 @@ import javax.sql.DataSource
     KraftAdminWebConfiguration::class,
     PersistenceValidatorConfiguration::class,
     KraftAdminEventLogger::class,
-    KraftAdminAsyncConfiguration::class
+    KraftAdminAsyncConfiguration::class,
+    KraftAdminBulkActionAutoConfiguration::class,
 )
 @EnableConfigurationProperties(KraftAdminProperties::class)
 @ConditionalOnProperty(prefix = "kraftadmin", name = ["enabled"], havingValue = "true", matchIfMissing = false)

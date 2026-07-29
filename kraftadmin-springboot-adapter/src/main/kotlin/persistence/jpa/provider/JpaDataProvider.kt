@@ -9,6 +9,7 @@ import com.kraftadmin.spi.KraftAdminColumn
 import com.kraftadmin.ui_descriptors.LookupDescriptor
 import com.kraftadmin.utils.files.AdminStorageProvider
 import com.kraftadmin.logging.KraftAdminLogging
+import com.kraftadmin.model.BulkDeleteOutcome
 import com.kraftadmin.spi.KraftDataProvider
 import config.KraftAdminProperties
 import jakarta.persistence.EntityManager
@@ -26,6 +27,7 @@ import persistence.jpa.save.PropertyWriter
 import persistence.jpa.save.RelationshipWriter
 import events.SpringKraftLifecycleService
 import persistence.error.DefaultPersistenceErrorResolver
+import persistence.jpa.bulk_actions.BulkDeleteResult
 import persistence.jpa.metadata.JpaEntityMetadata
 import persistence.jpa.validation.PersistenceValidationService
 import security.SecurityProviderChain
@@ -198,6 +200,9 @@ class JpaDataProvider<T : Any>(
         return fetchByIdExecutor.fetchEntity(id)
     }
 
+    override fun bulkDelete(ids: List<String>): BulkDeleteOutcome {
+        return entityDeleter.bulkDelete(ids)
+    }
 
 
 }
