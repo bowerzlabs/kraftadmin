@@ -10,6 +10,7 @@ import org.springframework.core.annotation.Order
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.annotation.web.invoke
+import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 
@@ -24,38 +25,30 @@ private val properties: KraftAdminProperties,
 ) {
 private val log = KraftAdminLogging.logger(javaClass)
 
-@Bean
-@Order(1)
-fun kraftAdminFilterChain(http: HttpSecurity): SecurityFilterChain {
-val basePath = properties.basePath.removeSuffix("/").ifEmpty { "/admin" }
+    @Bean
+    @Order(1)
+    fun kraftAdminFilterChain(http: HttpSecurity): SecurityFilterChain {
 
-log.info("Registering independent KraftAdmin security filter chain for {}/**", basePath)
+        val basePath = properties.basePath
+            .removeSuffix("/")
+            .ifEmpty { "/admin" }
 
-http {
-securityMatcher(AntPathRequestMatcher("$basePath/**"))
-csrf { disable() }
-// No server-managed HTTP session for this chain — KraftAdmin's
-// own cookie (KRAFTADMIN_SESSION, via AdminSessionStore) is a
-// custom-format token read directly by AdminSecurityFilter,
-// not a Spring Security session.
-sessionManagement { sessionCreationPolicy = org.springframework.security.config.http.SessionCreationPolicy.STATELESS }
-authorizeHttpRequests {
-// Permit everything at the Spring Security layer. Actual
-// authentication/authorization for /admin/** happens in
-// AdminSecurityFilter, registered as a plain servlet
-// filter (see KraftAdminSpringSecurityConfig), which now
-// runs unimpeded since nothing above it rejects the
-// request first.
-authorize(AntPathRequestMatcher("/**"), permitAll)
-}
-// No formLogin, no httpBasic, no logout handler — none of
-// Spring Security's own auth mechanisms apply to this chain.
-// AdminSecurityFilter is the sole authority here.
-formLogin { disable() }
-httpBasic { disable() }
-logout { disable() }
-}
+        log.info("Registering KraftAdmin security chain for {}", basePath)
 
-return http.build()
-}
+        http
+            .securityMatcher("$basePath/**")
+            .csrf { it.disable() }
+            .sessionManagement {
+                it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            }
+            .authorizeHttpRequests {
+                it.anyRequest().permitAll()
+            }
+            .formLogin { it.disable() }
+            .httpBasic { it.disable() }
+            .logout { it.disable() }
+
+        return http.build()
+    }
+
 }
