@@ -6,6 +6,7 @@ import com.kraftadmin.spi.KraftEnvironmentProvider
 import com.kraftadmin.spi.RuntimeInfo
 import com.zaxxer.hikari.HikariDataSource
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.context.ApplicationContext
 import org.springframework.core.env.Environment
 import java.lang.management.ManagementFactory
 import java.time.Instant
@@ -14,7 +15,7 @@ import javax.sql.DataSource
 class SpringBootEnvironmentProvider(
     private val environment: Environment,
     private val dataSources: ObjectProvider<DataSource>,
-    private val mongoDatabases: ObjectProvider<Map<String, Any>>,
+    private val applicationContext: ApplicationContext,
     private val appVersion: String
 ) : KraftEnvironmentProvider {
 
@@ -60,13 +61,7 @@ class SpringBootEnvironmentProvider(
             }
             .toList()
 
-        val documentStores = mongoDatabases
-            .getIfAvailable { emptyMap() }
-            .mapNotNull { (name, database) ->
-                describeMongo(name, database)
-            }
-
-        return relational + documentStores
+        return relational + describeMongoDatabases()
     }
 
     private fun resolveDataSourceName(dataSource: DataSource): String {
@@ -79,6 +74,29 @@ class SpringBootEnvironmentProvider(
             else -> {
                 dataSource.javaClass.simpleName
             }
+        }
+    }
+
+    /**
+     * MongoDB is intentionally handled reflectively.
+     *
+     * This keeps KraftAdmin free from a hard compile-time MongoDB dependency.
+     * We look up beans by actual type (com.mongodb.client.MongoDatabase)
+     * rather than injecting a Map<String, Any>, which Spring resolves to
+     * *every* bean in the context (a common footgun).
+     */
+    private fun describeMongoDatabases(): List<DataSourceInfo> {
+        val mongoDatabaseClass = try {
+            Class.forName("com.mongodb.client.MongoDatabase")
+        } catch (_: ClassNotFoundException) {
+            return emptyList() // Mongo driver isn't even on the classpath
+        }
+
+        return try {
+            applicationContext.getBeansOfType(mongoDatabaseClass)
+                .mapNotNull { (name, database) -> describeMongo(name, database) }
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 
@@ -135,11 +153,6 @@ class SpringBootEnvironmentProvider(
         }
     }
 
-    /**
-     * MongoDB is intentionally handled reflectively.
-     *
-     * This keeps KraftAdmin free from a hard compile-time MongoDB dependency.
-     */
     private fun describeMongo(
         name: String,
         db: Any

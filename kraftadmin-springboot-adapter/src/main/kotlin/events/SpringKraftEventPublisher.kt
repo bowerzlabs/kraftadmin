@@ -7,9 +7,10 @@ import com.kraftadmin.events.KraftEventPublisher
 import com.kraftadmin.events.ListenerEntry
 import com.kraftadmin.events.SynchronousEvent
 import com.kraftadmin.logging.KraftAdminLogging
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
+import java.util.concurrent.Executor
 
 /**
  * Spring implementation of the Kraft event publisher.
@@ -29,37 +30,32 @@ import org.springframework.stereotype.Component
     name = ["enabled"],
     havingValue = "true"
 )
-open class SpringKraftEventPublisher(
+class SpringKraftEventPublisher(
     private val registry: SpringListenerRegistry,
-    private val consumers: List<KraftEventConsumer>
+    private val consumers: List<KraftEventConsumer>,
+    @Qualifier("kraftEventExecutor") private val kraftEventExecutor: Executor
 ) : KraftEventPublisher {
 
     private val logger = KraftAdminLogging.logger(javaClass)
 
-
     init {
-        logger.info("KraftAdmin registered ${consumers.size} consumers: ${consumers.map { it::class.simpleName }}")
+        logger.info(
+            "KraftAdmin registered ${consumers.size} consumers: ${consumers.map { it::class.simpleName }}"
+        )
     }
 
     override fun publish(event: KraftAdminEvent) {
-
-        logger.info("Publishing {}", event::class.simpleName)
-
         logger.info("Publishing {}", event::class.simpleName)
 
         registry
             .getListeners(event::class.java)
             .filter { it.supports(event) }
             .forEach { listener ->
-
                 when (event) {
-
                     is SynchronousEvent ->
                         listener.execute(event)
-
                     is AsynchronousEvent ->
-                        invokeAsync(listener, event)
-
+                        dispatchListenerAsync(listener, event)
                     else ->
                         error("Unknown event type: ${event::class.qualifiedName}")
                 }
@@ -71,56 +67,35 @@ open class SpringKraftEventPublisher(
             .forEach { consumer ->
                 when (event) {
                     is SynchronousEvent -> consumer.consume(event)
-                    is AsynchronousEvent -> invokeConsumerAsync(consumer, event)
+                    is AsynchronousEvent -> dispatchConsumerAsync(consumer, event)
                     else -> {}
                 }
             }
-
-
-    }
-//
-//    private fun invokeConsumerAsync(
-//        consumer: KraftEventConsumer,
-//        event: KraftAdminEvent
-//    ) {
-//    }
-
-    private fun invokeConsumerAsync(
-        consumer: KraftEventConsumer,
-        event: KraftAdminEvent // Pass the event here
-    ) {
-        // Re-use your existing @Async infrastructure
-        invokeConsumerInternal(consumer, event)
     }
 
-    @Async("kraftEventExecutor")
-    protected fun invokeConsumerInternal(
-        consumer: KraftEventConsumer,
-        event: KraftAdminEvent
-    ) {
-        runCatching {
-            consumer.consume(event)
-        }.onFailure { ex ->
-            logger.error("Async consumer ${consumer::class.simpleName} failed", ex)
-        }
-    }
-
-    @Async("kraftEventExecutor")
-    protected fun invokeAsync(
+    private fun dispatchListenerAsync(
         listener: ListenerEntry,
         event: KraftAdminEvent
     ) {
+        kraftEventExecutor.execute {
+            runCatching {
+                listener.execute(event)
+            }.onFailure { ex ->
+                logger.error("Async listener failed", ex)
+            }
+        }
+    }
 
-        runCatching {
-
-            listener.execute(event)
-
-        }.onFailure { ex ->
-
-            logger.error(
-                "Async listener failed",
-                ex
-            )
+    private fun dispatchConsumerAsync(
+        consumer: KraftEventConsumer,
+        event: KraftAdminEvent
+    ) {
+        kraftEventExecutor.execute {
+            runCatching {
+                consumer.consume(event)
+            }.onFailure { ex ->
+                logger.error("Async consumer ${consumer::class.simpleName} failed", ex)
+            }
         }
     }
 }
