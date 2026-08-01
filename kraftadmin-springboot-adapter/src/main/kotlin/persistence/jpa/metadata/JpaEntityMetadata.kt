@@ -24,7 +24,7 @@ class JpaEntityMetadata<T : Any>(
 
     private val logger = KraftAdminLogging.logger(javaClass)
 
-    //  Eagerly cache the class hierarchy and fields
+    // Eagerly cache the class hierarchy and fields
     private val allFields: List<Field> by lazy(LazyThreadSafetyMode.PUBLICATION) {
         val startClass: Class<*> = entityClass.java
 

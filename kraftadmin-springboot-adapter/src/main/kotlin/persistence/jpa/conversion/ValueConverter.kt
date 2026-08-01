@@ -26,8 +26,6 @@ object ValueConverter {
      */
     data class EmbeddedResponse(val summary: String, val data: Map<String, Any?>)
 
-    // ✅ No local ObjectResponse — use api.utils.ObjectResponse everywhere
-
     fun convert(field: Field, rawValue: Any?): Any? {
         val value = HibernateUtil.unproxy(rawValue)
 
