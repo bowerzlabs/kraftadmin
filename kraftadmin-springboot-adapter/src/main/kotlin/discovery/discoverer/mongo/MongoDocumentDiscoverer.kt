@@ -1,36 +1,35 @@
 package discovery.discoverer.mongo
 
 import com.kraftadmin.enums.ProviderType
+import com.kraftadmin.logging.KraftAdminLogging
 import com.kraftadmin.spi.DiscoveredEntity
 import com.kraftadmin.spi.EntityDiscoverer
 import org.springframework.context.ApplicationContext
+import org.springframework.data.mongodb.core.mapping.Document
+import org.springframework.data.mongodb.core.mapping.MongoMappingContext
 
 class MongoDocumentDiscoverer(
     private val applicationContext: ApplicationContext
 ) : EntityDiscoverer {
 
-    override val provider: ProviderType = ProviderType.JPA
+    private val logger = KraftAdminLogging.logger(javaClass)
+    override val provider: ProviderType = ProviderType.MONGO
 
     override fun discover(): Set<DiscoveredEntity<*>> {
-        val mongoContextClass = try {
-            Class.forName("org.springframework.data.mongodb.core.mapping.MongoMappingContext")
-        } catch (_: ClassNotFoundException) {
-            return emptySet()
-        }
+        logger.info("MONGO Discoverer - Scanning")
+        val mongoContext = applicationContext.getBean(MongoMappingContext::class.java)
 
-        val mongoContext = try {
-            applicationContext.getBean(mongoContextClass)
-        } catch (_: Exception) {
-            return emptySet()
-        }
+        val entities = mongoContext.persistentEntities
+            .filter { it.type.isAnnotationPresent(Document::class.java) }
+            .map { entity ->
+                DiscoveredEntity(
+                    entityClass = entity.type,
+                    provider = ProviderType.MONGO
+                )
+            }
+            .toSet()
 
-        val persistentEntities =
-            mongoContextClass.getMethod("getPersistentEntities").invoke(mongoContext) as Iterable<*>
-
-//        return persistentEntities.mapNotNull {
-//            it!!.javaClass.getMethod("getType").invoke(it) as Class<*>
-//        }.toSet()
-
-        return emptySet()
+        logger.info("MONGO Discoverer - Found ${entities.size} document(s), skipped ${mongoContext.persistentEntities.count() - entities.size} embedded/non-document type(s)")
+        return entities
     }
 }

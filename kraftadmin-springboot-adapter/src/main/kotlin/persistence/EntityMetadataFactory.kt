@@ -11,9 +11,7 @@ object EntityMetadataFactory {
     fun <T : Any> create(providerType: ProviderType, entityClass: KClass<T>): KraftEntityMetadata<T> =
         when (providerType) {
             ProviderType.JPA -> JpaEntityMetadata(entityClass)
-            ProviderType.MONGO -> error(
-                "MONGO metadata support is not implemented yet for ${entityClass.simpleName}"
-            )
+            ProviderType.MONGO -> MongoEntityMetadata(entityClass)
             ProviderType.R2DBC -> error(
                 "R2DBC metadata support is not implemented yet for ${entityClass.simpleName}"
             )
