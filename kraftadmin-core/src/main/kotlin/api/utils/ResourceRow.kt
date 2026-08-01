@@ -17,7 +17,7 @@ data class ResourceRow(
     val metadata: Map<String, Any?> = emptyMap(),
     val customActions : List<KraftActionDescriptor> = emptyList(),
 
-    // ✅ Only populated by FetchById — null in list views by design
+    // Only populated by FetchById — null in list views by design
     val relatedResources: Map<String, RelatedCollection>? = null
 ) {
     data class RelatedCollection(
