@@ -164,10 +164,11 @@ class KraftAdminSpringbootMetaController(
         val id = data["id"]
         val hasId = when (id) {
             null -> false
+            is Map<*, *> -> false   // malformed/placeholder id blob — never a valid id
             is Number -> id.toLong() != 0L
+            is String -> id.isNotBlank()
             else -> id.toString().isNotBlank()
         }
-
         logger.info("id $id, $hasId")
         logger.info("data $data")
 

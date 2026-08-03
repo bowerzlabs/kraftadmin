@@ -24,7 +24,7 @@ spring:
       # 100MB example limit (adjust as needed; avoid setting it to arbitrary massive sizes to protect against DOS)
       max-in-memory-size: 100MB
 
-kraftpulse:
+kraftadmin:
   enabled: true
   base-path: /admin
   title: "KraftAdmin Dashboard"

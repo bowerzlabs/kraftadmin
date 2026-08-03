@@ -1,5 +1,6 @@
 package config
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
@@ -16,6 +17,7 @@ import persistence.jpa.validation.UniqueConstraintValidator
 import persistence.jpa.validation.VersionValidator
 
 @Configuration
+@ConditionalOnClass(name = ["jakarta.persistence.EntityManager"])
 @ConditionalOnProperty(prefix = "kraftadmin", name = ["enabled"], havingValue = "true", matchIfMissing = false)
 class PersistenceValidatorConfiguration {
 

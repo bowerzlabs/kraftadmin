@@ -160,6 +160,7 @@ class KraftAdminDescriptorFactory(
             ?: throw IllegalStateException("Resource '$resourceName' does not use any KraftDataProvider.")
         val lookup = LookupDescriptor(
             targetEntity = resourceName,
+            searchableFields = resource.searchableColumns,
         )
         return provider.getLookupData(lookup, 20, search)
     }
@@ -220,28 +221,31 @@ class KraftAdminDescriptorFactory(
 
 
     /**
-     * Resolves rows for bulk export. Empty/blank ids means "export everything"
-     * for this resource — reuses the existing getLookupData search path with
-     * no query and an unbounded limit, rather than adding a new provider
-     * method (avoids repeating the interface-default AbstractMethodError class
-     * of bug across every KraftDataProvider implementation).
+     * Resolves full row data for bulk export — the actual stored field values
+     * (same shape the list/detail views use via ResourceRow), not the
+     * summarized {id, label} ObjectResponse used for relation lookups.
+     *
+     * Empty ids means "export everything" for this resource.
      *
      * NOTE: this loads the full result set into memory. Fine for moderate
      * table sizes; if any resource can grow into the hundreds of thousands of
      * rows, this should be swapped for a streaming/cursor-based export instead.
      */
-    fun getLookupDataForExport(name: String, ids: List<String>): List<ObjectResponse> {
+    fun getResourceDataForExport(name: String, ids: List<String>): List<ResourceRow> {
         val resource = findResource(name)
-        val provider = resource.dataProvider
-            ?: throw IllegalStateException("Resource '$name' does not use any KraftDataProvider.")
-
-        val lookup = LookupDescriptor(targetEntity = name)
 
         return if (ids.isEmpty()) {
-            provider.getLookupData(lookup, limit = Int.MAX_VALUE, searchQuery = null)
+            resource.getAllRows(
+                page = 1,
+                size = Int.MAX_VALUE,
+                query = null,
+                columns = resource.columns,
+                sortField = null,
+                sortDirection = null
+            ).items
         } else {
-            provider.getLookupDataByIds(lookup, ids)
+            ids.mapNotNull { id -> resource.getById(id) }
         }
     }
-
+    
 }

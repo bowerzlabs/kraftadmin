@@ -6,10 +6,7 @@ import com.kraftadmin.config.KraftAdminRuntimeConfig
 import com.kraftadmin.events.KraftEventConsumer
 import com.kraftadmin.events.KraftEventPublisher
 import com.kraftadmin.logging.KraftAdminLogging
-import persistence.metrics.KraftMetricService
 import com.kraftadmin.spi.EntityDiscoveryService
-import discovery.ResourceGenerator
-import discovery.discoverer.environment.SpringBootEnvironmentProvider
 import com.kraftadmin.spi.KraftEnvironmentProvider
 import com.kraftadmin.spi.KraftMetricProvider
 import com.kraftadmin.ui_descriptors.KraftAdminDescriptorFactory
@@ -19,13 +16,13 @@ import com.kraftadmin.utils.files.LocalFileSystemAdapter
 import com.kraftadmin.utils.files.S3Adapter
 import com.kraftadmin.utils.validation.KraftValidationExtractor
 import controller.KraftAdminSpringbootUploadController
-import events.KraftAdminEventLogger
-import events.KraftAdminEventStore
-import events.SpringKraftEventPublisher
-import events.SpringActionRegistry
-import events.SpringListenerRegistry
+import discovery.ResourceGenerator
+import discovery.discoverer.environment.SpringBootEnvironmentProvider
+import events.*
 import exception.KraftAdminExceptionHandler
 import json.KraftJsonSerializer
+import org.springframework.beans.factory.ObjectProvider
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
@@ -35,14 +32,7 @@ import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.core.env.Environment
-import org.springframework.transaction.PlatformTransactionManager
-import org.springframework.transaction.support.TransactionTemplate
-import events.SpringKraftLifecycleService
-import jakarta.persistence.EntityManager
-import org.springframework.beans.factory.ObjectProvider
-import org.springframework.beans.factory.annotation.Qualifier
-import persistence.jpa.bulk_actions.BulkActionService
-import persistence.jpa.metrics.JpaMetricProvider
+import persistence.metrics.KraftMetricService
 import util.JacksonKraftJsonSerializer
 import validation.JakartaValidationExtractor
 import java.util.concurrent.Executor
@@ -53,6 +43,7 @@ import javax.sql.DataSource
     KraftAdminVersionGuardAutoConfiguration::class,
     KraftAdminJpaAutoConfiguration::class,
     KraftAdminMongoAutoConfiguration::class,
+    KraftAdminMongoNoticeAutoConfiguration::class,
     KraftAdminDiscoveryAutoConfiguration::class,
     KraftAdminWebConfiguration::class,
     PersistenceValidatorConfiguration::class,
@@ -143,18 +134,26 @@ class KraftAdminSpringBootAutoConfiguration(
         return KraftAdminEventStore()
     }
 
-    @Bean
-    @ConditionalOnMissingBean(KraftMetricProvider::class)
-    fun kraftMetricsProvider(
-        entityManager: EntityManager,
-        transactionTemplate: TransactionTemplate
-    ): KraftMetricProvider {
-        return JpaMetricProvider(
-            entityManager = entityManager,
-            transactionTemplate = transactionTemplate
-        )
-    }
-
+//    @Bean
+//    @ConditionalOnMissingBean(KraftMetricProvider::class)
+//    fun kraftMetricsProvider(
+//        entityManager: EntityManager,
+//        transactionTemplate: TransactionTemplate
+//    ): KraftMetricProvider {
+//        return JpaMetricProvider(
+//            entityManager = entityManager,
+//            transactionTemplate = transactionTemplate
+//        )
+//    }
+//
+//
+//    @Bean
+//    @ConditionalOnMissingBean(KraftMetricService::class)
+//    fun kraftMetricsService(
+//        metricProviders: List<KraftMetricProvider>
+//    ): KraftMetricService {
+//        return KraftMetricService(metricProviders)
+//    }
 
     @Bean
     @ConditionalOnMissingBean(KraftMetricService::class)
@@ -212,11 +211,6 @@ class KraftAdminSpringBootAutoConfiguration(
     @ConditionalOnMissingBean(KraftAdminSpringbootUploadController::class)
     fun kraftSprinbootUploadController(adminStorageProvider: AdminStorageProvider) =
         KraftAdminSpringbootUploadController(adminStorageProvider)
-
-    @Bean
-    fun transactionTemplate(transactionManager: PlatformTransactionManager): TransactionTemplate {
-        return TransactionTemplate(transactionManager)
-    }
 
     @Bean
     @ConditionalOnMissingBean(AdminStorageProvider::class)

@@ -39,6 +39,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.0")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.17.2")
 
     // Hibernate — consumer provides at runtime, you only reference via reflection
     compileOnly("org.hibernate.orm:hibernate-core:6.4.4.Final")
@@ -52,6 +53,7 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.10")
     testImplementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
     testImplementation("org.springframework.boot:spring-boot-starter-data-mongodb")
+    testImplementation("org.springframework.boot:spring-boot-starter-web")
     testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 }

@@ -16,9 +16,13 @@ class JsonDataExporter(
     override val format: DataFormat = DataFormat.JSON
 
     override fun export(resource: String, selectedIds: List<String>): ExportResult {
-        val rows = descriptorFactory.getLookupDataForExport(resource, selectedIds)
+        val rows = descriptorFactory.getResourceDataForExport(resource, selectedIds)
         val suffix = if (selectedIds.isEmpty()) "all" else "selected"
-        val bytes = mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(rows)
+
+        // Flatten id + values into one row per record — the actual stored
+        val payload = rows.map { row -> linkedMapOf<String, Any?>("id" to row.id) + row.values }
+
+        val bytes = mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(payload)
         return ExportResult(
             fileName = "$resource-export-$suffix.${format.fileExtension}",
             contentType = format.contentType,
